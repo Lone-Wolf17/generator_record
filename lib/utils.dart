@@ -1,0 +1,1 @@
+String mainTableName = "main_gen_record";
