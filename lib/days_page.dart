@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:generator_record/db_helper.dart';
-import 'package:generator_record/main.dart';
 import 'package:generator_record/utils.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -139,8 +138,8 @@ class SingleDayRecordPage extends StatelessWidget {
           IconButton(
               icon: Icon(Icons.home_outlined),
               onPressed: () {
-                Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => MyHomePage()));
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               })
         ],
       ),
@@ -186,25 +185,52 @@ class SingleDayRecordPage extends StatelessWidget {
                 future: _readDateRecordsFromDB(),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
+                    print(snapshot.data);
+
                     return ListView.builder(
                         shrinkWrap: true,
                         itemCount: snapshot.data.length,
                         itemBuilder: (context, index) {
-                          Duration duration = Duration(
-                              minutes: snapshot.data[index]
-                              [DbHelper.DURATION_IN_MINS_COLUMN]);
+                          String durationStr = "";
 
-                          String durationStr = durationInHoursAndMins(duration);
+                          /* If End Time || End Date || duration Colloum is null
+                            It most likely means that gen is still On for that record,
+                            Hence no End Time, Date and Duration yet,
+                            We therefore we provide a placeholder value, so
+                            that null value is not used
+                          */
+
+                          if (snapshot.data[index]
+                                  [DbHelper.DURATION_IN_MINS_COLUMN] ==
+                              null) {
+                            durationStr = "Still ON";
+                          } else {
+                            Duration duration = Duration(
+                                minutes: snapshot.data[index]
+                                    [DbHelper.DURATION_IN_MINS_COLUMN]);
+
+                            durationStr = durationInHoursAndMins(duration);
+                          }
 
                           String shutdownDate = "";
-                          if (snapshot.data[index]
-                          [DbHelper.START_DATE_COLUMN] ==
+
+                          if (snapshot.data[index][DbHelper.END_DATE_COLUMN] ==
+                              null) {
+                            shutdownDate = "Still ON";
+                          } else if (snapshot.data[index]
+                                  [DbHelper.START_DATE_COLUMN] ==
                               snapshot.data[index][DbHelper.END_DATE_COLUMN]) {
                             shutdownDate = "Same Day";
                           } else {
                             shutdownDate =
-                            snapshot.data[index][DbHelper.END_DATE_COLUMN];
+                                snapshot.data[index][DbHelper.END_DATE_COLUMN];
                           }
+
+                          String endTimeStr = snapshot.data[index]
+                                      [DbHelper.END_TIME_COLUMN] ==
+                                  null
+                              ? "Still On"
+                              : snapshot.data[index][DbHelper.END_TIME_COLUMN];
 
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
@@ -212,10 +238,8 @@ class SingleDayRecordPage extends StatelessWidget {
                               children: [
                                 Expanded(
                                     child: Text(snapshot.data[index]
-                                    [DbHelper.START_TIME_COLUMN])),
-                                Expanded(
-                                    child: Text(snapshot.data[index]
-                                    [DbHelper.END_TIME_COLUMN])),
+                                        [DbHelper.START_TIME_COLUMN])),
+                                Expanded(child: Text(endTimeStr)),
                                 Expanded(child: Text(shutdownDate)),
                                 Expanded(child: Text(durationStr)),
                               ],
