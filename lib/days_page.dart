@@ -2,18 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:generator_record/db_helper.dart';
+import 'package:generator_record/main.dart';
 import 'package:generator_record/utils.dart';
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DaysPage extends StatelessWidget {
   Future<List<Map>> _readDB() async {
-    // Get a location using getDatabasesPath
-    var databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, DbHelper.DB_NAME);
-
     // open the database
-    Database database = await openDatabase(path);
+    Database database = await DbHelper().database;
 
     // Get the records
     List<Map> daysList = await database.rawQuery(
@@ -22,17 +18,20 @@ class DaysPage extends StatelessWidget {
     return daysList;
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Days Record"),
       ),
-      body: FutureBuilder(
+      body: FutureBuilder<List<Map>>(
         future: _readDB(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
+            if (snapshot.data.isEmpty) {
+              return Center(child: Text("No Record Found in Database!!!"),);
+            }
+
             return ListView.builder(
                 itemCount: snapshot.data.length,
                 itemBuilder: (context, i) {
@@ -43,12 +42,21 @@ class DaysPage extends StatelessWidget {
                   String durationStr = durationInHoursAndMins(duration);
 
                   String dateStr = snapshot.data[i][DbHelper.DATE_COLUMN];
+
+                  // So in case there is no value in final shut down column
+                  // happens when its the first time the gen is put on for the day
+                  // cant think of another placeholder for this scenario right now.
+                  // But i don't want it to display null
+
+                  String finalShutdown = snapshot.data[i][DbHelper
+                      .FINAL_SHUTDOWN_COLUMN] == null ? "-- : --" : snapshot
+                      .data[i][DbHelper.FINAL_SHUTDOWN_COLUMN];
+
                   return InkWell(
                     onTap: () {
-                      Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) =>
-                              SingleDayRecordPage(dateStr: dateStr))
-                      );
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) =>
+                              SingleDayRecordPage(dateStr: dateStr)));
                     },
                     child: Card(
                         child: Padding(
@@ -58,17 +66,20 @@ class DaysPage extends StatelessWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                      child: Text(
-                                          dateStr,
+                                      child: Text(dateStr,
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
                                               color: Colors.primaries[Random()
                                                   .nextInt(
                                                   Colors.primaries.length)]))),
-                                  Expanded(child: Text(durationStr,
-                                    style: TextStyle(fontSize: 15,
-                                        fontWeight: FontWeight.bold),)),
+                                  Expanded(
+                                      child: Text(
+                                        durationStr,
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold),
+                                      )),
                                 ],
                               ),
                               Row(
@@ -81,9 +92,7 @@ class DaysPage extends StatelessWidget {
                                   ),
                                   Expanded(
                                     child: Text(
-                                        "Final Shutdown: ${snapshot
-                                            .data[i][DbHelper
-                                            .FINAL_SHUTDOWN_COLUMN]}"),
+                                        "Final Shutdown: $finalShutdown"),
                                   ),
                                 ],
                               ),
@@ -104,24 +113,19 @@ class DaysPage extends StatelessWidget {
 }
 
 class SingleDayRecordPage extends StatelessWidget {
-
   final String dateStr;
 
   SingleDayRecordPage({@required this.dateStr});
 
   Future<List<Map>> _readDateRecordsFromDB() async {
-    // Get a location using getDatabasesPath
-    var databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, DbHelper.DB_NAME);
-
     // open the database
-    Database database = await openDatabase(path);
+    Database database = await DbHelper().database;
 
     // Get the records
-    List<Map> dateRecords = await database
-        .rawQuery("SELECT * FROM ${DbHelper.MAIN_RECORD_TABLE} WHERE ${DbHelper
-        .START_DATE_COLUMN} = '$dateStr' ORDER BY '${DbHelper
-        .START_TIME_COLUMN}' ASC");
+    List<Map> dateRecords = await database.rawQuery(
+        "SELECT * FROM ${DbHelper.MAIN_RECORD_TABLE} WHERE ${DbHelper
+            .START_DATE_COLUMN} = '$dateStr' ORDER BY '${DbHelper
+            .START_TIME_COLUMN}' ASC");
 
     return dateRecords;
   }
@@ -129,23 +133,51 @@ class SingleDayRecordPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Date: $dateStr"),),
+      appBar: AppBar(
+        title: Text("Date: $dateStr"),
+        actions: [
+          IconButton(
+              icon: Icon(Icons.home_outlined),
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => MyHomePage()));
+              })
+        ],
+      ),
       body: Column(
         children: [
           Card(
             margin: const EdgeInsets.only(left: 4, top: 0, right: 4, bottom: 4),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Row(children: [
-                Expanded(child: Text("Start Time",
-                  style: TextStyle(fontWeight: FontWeight.bold),),),
-                Expanded(child: Text(
-                  "End Time", style: TextStyle(fontWeight: FontWeight.bold),),),
-                Expanded(child: Text("Shutdown Date",
-                  style: TextStyle(fontWeight: FontWeight.bold),),),
-                Expanded(child: Text(
-                  "Duration", style: TextStyle(fontWeight: FontWeight.bold),),),
-              ],),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Start Time",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      "End Time",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      "Shutdown Date",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      "Duration",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Container(
@@ -165,8 +197,8 @@ class SingleDayRecordPage extends StatelessWidget {
                           String durationStr = durationInHoursAndMins(duration);
 
                           String shutdownDate = "";
-                          if (snapshot.data[index][DbHelper
-                              .START_DATE_COLUMN] ==
+                          if (snapshot.data[index]
+                          [DbHelper.START_DATE_COLUMN] ==
                               snapshot.data[index][DbHelper.END_DATE_COLUMN]) {
                             shutdownDate = "Same Day";
                           } else {
@@ -176,19 +208,25 @@ class SingleDayRecordPage extends StatelessWidget {
 
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Row(children: [
-                              Expanded(child: Text(snapshot.data[index][DbHelper
-                                  .START_TIME_COLUMN])),
-                              Expanded(child: Text(snapshot.data[index][DbHelper
-                                  .END_TIME_COLUMN])),
-                              Expanded(child: Text(shutdownDate)),
-                              Expanded(child: Text(durationStr)),
-                            ],),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                    child: Text(snapshot.data[index]
+                                    [DbHelper.START_TIME_COLUMN])),
+                                Expanded(
+                                    child: Text(snapshot.data[index]
+                                    [DbHelper.END_TIME_COLUMN])),
+                                Expanded(child: Text(shutdownDate)),
+                                Expanded(child: Text(durationStr)),
+                              ],
+                            ),
                           );
                         });
                   }
 
-                  return Center(child: CircularProgressIndicator(),);
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }),
           ),
         ],
@@ -196,4 +234,3 @@ class SingleDayRecordPage extends StatelessWidget {
     );
   }
 }
-

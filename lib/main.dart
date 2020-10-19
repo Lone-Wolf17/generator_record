@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:generator_record/days_page.dart';
 import 'package:generator_record/db_helper.dart';
 import 'package:generator_record/utils.dart';
-import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -55,20 +54,13 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    // Get a location using getDatabasesPath
-    var databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, DbHelper.DB_NAME);
-
-// open the database
-    database = await openDatabase(path, version: 1,
-        onCreate: (Database db, int version) async {
-      // When creating the db, create the table
-      await db.execute(
-          'CREATE TABLE ${DbHelper.MAIN_RECORD_TABLE} (${DbHelper.ID_COLUMN} INTEGER PRIMARY KEY, ${DbHelper.START_DATE_COLUMN} TEXT NOT NULL, ${DbHelper.START_TIME_COLUMN} TEXT NOT NULL, ${DbHelper.END_TIME_COLUMN} TEXT, ${DbHelper.END_DATE_COLUMN} TEXT,  ${DbHelper.START_DATE_TIME_COLUMN} TEXT UNIQUE NOT NULL, ${DbHelper.END_DATE_TIME_COLUMN} TEXT UNIQUE, ${DbHelper.DURATION_IN_MINS_COLUMN} INTEGER)');
-      await db.execute(
-          'CREATE TABLE ${DbHelper.DAILY_RECORDS_TABLE} (${DbHelper.ID_COLUMN} INTEGER PRIMARY KEY, ${DbHelper.DATE_COLUMN} TEXT UNIQUE NOT NULL, ${DbHelper.INITIAL_START_COLUMN} TEXT NOT NULL, ${DbHelper.FINAL_SHUTDOWN_COLUMN} TEXT, ${DbHelper.DURATION_IN_MINS_COLUMN} INTEGER DEFAULT 0)');
+    if (!prefs.containsKey(firstDate)) {
+      // if this is the first run of app
       prefs.setString(firstDate, DateTime.now().toUtc().toString());
-    });
+    }
+
+    // open the database
+    database = await DbHelper().database;
   }
 
   @override
@@ -109,16 +101,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ['$startDate', '$startTime']);
       }
 
-      // int id2 = await txn.rawInsert(
-      //     'INSERT INTO Test(name, value, num) VALUES(?, ?, ?)',
-      //     ['another name', 12345678, 3.1416]);
-      // print('inserted2: $id2');
     });
   }
 
   _stopGen() async {
     _toggleGenState();
     // Insert some records in a transaction
+
     await database.transaction((txn) async {
       DateTime currentDateTime = DateTime.now();
       String endDate = formatIntoDateString(currentDateTime);
@@ -152,7 +141,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (currentDateTime.day == startTime.day &&
           currentDateTime.month == startTime.month &&
           currentDateTime.year == startTime.year) {
-        int id1 = await txn.rawUpdate(
+        // gen was shutdown the same day it was switched on
+        await txn.rawUpdate(
             'UPDATE ${DbHelper.DAILY_RECORDS_TABLE} SET  ${DbHelper
                 .FINAL_SHUTDOWN_COLUMN} = ?, ${DbHelper
                 .DURATION_IN_MINS_COLUMN} = ? WHERE ${DbHelper
@@ -191,6 +181,7 @@ class _MyHomePageState extends State<MyHomePage> {
         newStartDate = DateTime(
             newStartDate.year, newStartDate.month, newStartDate.day, 00, 00);
 
+
         while (currentDateTime.day - newStartDate.day != 0 &&
             currentDateTime.month == newStartDate.month &&
             currentDateTime.year == newStartDate.year) {
@@ -219,6 +210,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 ]);
           }
 
+          /*
+          We are not inserting a new row in the main table for each day because it doesn't follow how it was done in reality.
+          For example, when the gen is left overnight, it isnt seen as it is switched off by 23:59 today and switched on by 00:00 the next day
+          The average person just understands it as the gen was switched on by 10 pm and switched off by 6am the next day
+          */
 
           newStartDate = newStartDate.add(Duration(days: 1));
           newStartDate = DateTime(
@@ -283,15 +279,6 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text("Big Gen Records"),
         actions: [
           IconButton(
-              icon: Icon(Icons.refresh),
-              color: isGenOn ? Colors.green : Colors.red,
-              onPressed: () {
-                prefs.setBool(genState, false);
-                setState(() {
-                  isGenOn = false;
-                });
-              }),
-          IconButton(
               icon: Icon(Icons.remove_red_eye),
               onPressed: () {
                 Navigator.of(context)
@@ -335,4 +322,5 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
 }
