@@ -13,3 +13,16 @@ String formatIntoDateString(DateTime dateTime) {
 String formatIntoTimeString(DateTime dateTime) {
   return DateFormat('kk:mm').format(dateTime);
 }
+
+String durationInHoursAndMins(Duration duration) {
+  String durationStr = "";
+
+  if (duration.inHours != 0) {
+    int remainingMins = duration.inMinutes - (duration.inHours * 60);
+    durationStr += "${duration.inHours} Hrs $remainingMins Mins";
+  } else {
+    durationStr += "${duration.inMinutes} Mins";
+  }
+
+  return durationStr;
+}

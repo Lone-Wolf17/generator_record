@@ -275,6 +275,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    String txt = isGenOn ? "Gen is Currently On" : "Gen is Currently Off";
+    Color txtColor = isGenOn ? Colors.green : Colors.red;
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Big Gen Records"),
@@ -300,7 +303,11 @@ class _MyHomePageState extends State<MyHomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           Center(
-            child: Text("Gen is Currently On"),
+            child: Text(
+              txt,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: txtColor, fontSize: 25),
+            ),
           ),
           Center(
               child: RaisedButton(
