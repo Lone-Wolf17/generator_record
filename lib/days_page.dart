@@ -12,7 +12,7 @@ class DaysPage extends StatelessWidget {
 
     // Get the records
     List<Map> daysList = await database.rawQuery(
-        'SELECT * FROM ${DbHelper.DAILY_RECORDS_TABLE} ORDER BY "${DbHelper.DATE_COLUMN}" DESC');
+        'SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY "${DbHelper.dateCol}" DESC');
 
     return daysList;
   }
@@ -36,11 +36,11 @@ class DaysPage extends StatelessWidget {
                 itemBuilder: (context, i) {
                   Duration duration = Duration(
                       minutes: snapshot.data[i]
-                      [DbHelper.DURATION_IN_MINS_COLUMN]);
+                      [DbHelper.durationInMinsCol]);
 
                   String durationStr = durationInHoursAndMins(duration);
 
-                  String dateStr = snapshot.data[i][DbHelper.DATE_COLUMN];
+                  String dateStr = snapshot.data[i][DbHelper.dateCol];
 
                   // So in case there is no value in final shut down column
                   // happens when its the first time the gen is put on for the day
@@ -48,8 +48,8 @@ class DaysPage extends StatelessWidget {
                   // But i don't want it to display null
 
                   String finalShutdown = snapshot.data[i][DbHelper
-                      .FINAL_SHUTDOWN_COLUMN] == null ? "-- : --" : snapshot
-                      .data[i][DbHelper.FINAL_SHUTDOWN_COLUMN];
+                      .finalShutdownCol] == null ? "-- : --" : snapshot
+                      .data[i][DbHelper.finalShutdownCol];
 
                   return InkWell(
                     onTap: () {
@@ -87,7 +87,7 @@ class DaysPage extends StatelessWidget {
                                     child: Text(
                                         "Initial Start: ${snapshot
                                             .data[i][DbHelper
-                                            .INITIAL_START_COLUMN]}"),
+                                            .initialStartCol]}"),
                                   ),
                                   Expanded(
                                     child: Text(
@@ -122,9 +122,9 @@ class SingleDayRecordPage extends StatelessWidget {
 
     // Get the records
     List<Map> dateRecords = await database.rawQuery(
-        "SELECT * FROM ${DbHelper.MAIN_RECORD_TABLE} WHERE ${DbHelper
-            .START_DATE_COLUMN} = '$dateStr' ORDER BY '${DbHelper
-            .START_TIME_COLUMN}' ASC");
+        "SELECT * FROM ${DbHelper.mainRecordTable} WHERE ${DbHelper
+            .startDateCol} = '$dateStr' ORDER BY '${DbHelper
+            .startTimeCol}' ASC");
 
     return dateRecords;
   }
@@ -201,36 +201,36 @@ class SingleDayRecordPage extends StatelessWidget {
                           */
 
                           if (snapshot.data[index]
-                                  [DbHelper.DURATION_IN_MINS_COLUMN] ==
+                          [DbHelper.durationInMinsCol] ==
                               null) {
                             durationStr = "Still ON";
                           } else {
                             Duration duration = Duration(
                                 minutes: snapshot.data[index]
-                                    [DbHelper.DURATION_IN_MINS_COLUMN]);
+                                [DbHelper.durationInMinsCol]);
 
                             durationStr = durationInHoursAndMins(duration);
                           }
 
                           String shutdownDate = "";
 
-                          if (snapshot.data[index][DbHelper.END_DATE_COLUMN] ==
+                          if (snapshot.data[index][DbHelper.endDateCol] ==
                               null) {
                             shutdownDate = "Still ON";
                           } else if (snapshot.data[index]
-                                  [DbHelper.START_DATE_COLUMN] ==
-                              snapshot.data[index][DbHelper.END_DATE_COLUMN]) {
+                          [DbHelper.startDateCol] ==
+                              snapshot.data[index][DbHelper.endDateCol]) {
                             shutdownDate = "Same Day";
                           } else {
                             shutdownDate =
-                                snapshot.data[index][DbHelper.END_DATE_COLUMN];
+                            snapshot.data[index][DbHelper.endDateCol];
                           }
 
                           String endTimeStr = snapshot.data[index]
-                                      [DbHelper.END_TIME_COLUMN] ==
-                                  null
+                          [DbHelper.endTimeCol] ==
+                              null
                               ? "Still On"
-                              : snapshot.data[index][DbHelper.END_TIME_COLUMN];
+                              : snapshot.data[index][DbHelper.endTimeCol];
 
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
@@ -238,7 +238,7 @@ class SingleDayRecordPage extends StatelessWidget {
                               children: [
                                 Expanded(
                                     child: Text(snapshot.data[index]
-                                        [DbHelper.START_TIME_COLUMN])),
+                                    [DbHelper.startTimeCol])),
                                 Expanded(child: Text(endTimeStr)),
                                 Expanded(child: Text(shutdownDate)),
                                 Expanded(child: Text(durationStr)),

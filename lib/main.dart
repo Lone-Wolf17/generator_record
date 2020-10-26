@@ -82,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
       prefs.setString("startTime", currentDateTime.toUtc().toString());
       int id1 = await txn
           .rawInsert(
-              'INSERT INTO ${DbHelper.MAIN_RECORD_TABLE} (${DbHelper.START_DATE_COLUMN}, ${DbHelper.START_TIME_COLUMN}, ${DbHelper.START_DATE_TIME_COLUMN}) VALUES("$startDate", "$startTime", "${currentDateTime.toUtc()}")')
+              'INSERT INTO ${DbHelper.mainRecordTable} (${DbHelper.startDateCol}, ${DbHelper.startTimeCol}, ${DbHelper.startDateTimeCol}) VALUES("$startDate", "$startTime", "${currentDateTime.toUtc()}")')
           .then((value) {
         setState(() {
           isGenOn = true;
@@ -93,11 +93,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // Get the records
       List<Map> list = await txn.rawQuery(
-          "SELECT * FROM ${DbHelper.DAILY_RECORDS_TABLE} WHERE ${DbHelper.DATE_COLUMN} = '$startDate' ");
+          "SELECT * FROM ${DbHelper.dailySummaryTable} WHERE ${DbHelper
+              .dateCol} = '$startDate' ");
 
       if (list.isEmpty) {
         txn.rawInsert(
-            "INSERT INTO ${DbHelper.DAILY_RECORDS_TABLE} (${DbHelper.DATE_COLUMN}, ${DbHelper.INITIAL_START_COLUMN}) VALUES(?, ?)",
+            "INSERT INTO ${DbHelper.dailySummaryTable} (${DbHelper
+                .dateCol}, ${DbHelper.initialStartCol}) VALUES(?, ?)",
             ['$startDate', '$startTime']);
       }
 
@@ -124,12 +126,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
       String startDateStr = formatIntoDateString(startTime);
       List<Map> list = await txn.rawQuery(
-          "SELECT ${DbHelper.DURATION_IN_MINS_COLUMN} FROM ${DbHelper
-              .DAILY_RECORDS_TABLE} WHERE ${DbHelper
-              .DATE_COLUMN} = '$startDateStr' ");
+          "SELECT ${DbHelper.durationInMinsCol} FROM ${DbHelper
+              .dailySummaryTable} WHERE ${DbHelper
+              .dateCol} = '$startDateStr' ");
       int oldDurationInMins = 0;
       if (list.length == 1) {
-        oldDurationInMins = list.first[DbHelper.DURATION_IN_MINS_COLUMN];
+        oldDurationInMins = list.first[DbHelper.durationInMinsCol];
       } else if (list.length == 0) {
         print(
             "ERROR: About to switch-off gen and Daily Record table has no record for present day");
@@ -143,10 +145,10 @@ class _MyHomePageState extends State<MyHomePage> {
           currentDateTime.year == startTime.year) {
         // gen was shutdown the same day it was switched on
         await txn.rawUpdate(
-            'UPDATE ${DbHelper.DAILY_RECORDS_TABLE} SET  ${DbHelper
-                .FINAL_SHUTDOWN_COLUMN} = ?, ${DbHelper
-                .DURATION_IN_MINS_COLUMN} = ? WHERE ${DbHelper
-                .DATE_COLUMN} = ?',
+            'UPDATE ${DbHelper.dailySummaryTable} SET  ${DbHelper
+                .finalShutdownCol} = ?, ${DbHelper
+                .durationInMinsCol} = ? WHERE ${DbHelper
+                .dateCol} = ?',
             [
               '$endTime',
               oldDurationInMins + currentDuration.inMinutes,
@@ -166,10 +168,10 @@ class _MyHomePageState extends State<MyHomePage> {
         (1440 - (startTime.hour * 60) + (startTime.minute));
 
         int id1 = await txn.rawUpdate(
-            'UPDATE ${DbHelper.DAILY_RECORDS_TABLE} SET ${DbHelper
-                .FINAL_SHUTDOWN_COLUMN} = ?, ${DbHelper
-                .DURATION_IN_MINS_COLUMN} = ? WHERE ${DbHelper
-                .DATE_COLUMN} = ?',
+            'UPDATE ${DbHelper.dailySummaryTable} SET ${DbHelper
+                .finalShutdownCol} = ?, ${DbHelper
+                .durationInMinsCol} = ? WHERE ${DbHelper
+                .dateCol} = ?',
             [
               '23:59',
               oldDurationInMins + prevDayDurationInMins,
@@ -191,17 +193,17 @@ class _MyHomePageState extends State<MyHomePage> {
           // check if a row exist for newDate in Daily Records Table
           // A row ideally shouldn't exist but we can never be too careful
 
-          String queryStr = "SELECT ${DbHelper.DATE_COLUMN} FROM ${DbHelper
-              .DAILY_RECORDS_TABLE} WHERE $DbHelper.DATE_COLUMN ='$newStartDateSTr'";
+          String queryStr = "SELECT ${DbHelper.dateCol} FROM ${DbHelper
+              .dailySummaryTable} WHERE $DbHelper.DATE_COLUMN ='$newStartDateSTr'";
 
           var result = await txn.rawQuery(queryStr);
 
           if (result.isEmpty) {
             txn.rawInsert(
-                'INSERT INTO ${DbHelper.DAILY_RECORDS_TABLE} ( ${DbHelper
-                    .DATE_COLUMN}, ${DbHelper.INITIAL_START_COLUMN}, ${DbHelper
-                    .FINAL_SHUTDOWN_COLUMN}, ${DbHelper
-                    .DURATION_IN_MINS_COLUMN}) VALUES(?, ?, ?, ?)',
+                'INSERT INTO ${DbHelper.dailySummaryTable} ( ${DbHelper
+                    .dateCol}, ${DbHelper.initialStartCol}, ${DbHelper
+                    .finalShutdownCol}, ${DbHelper
+                    .durationInMinsCol}) VALUES(?, ?, ?, ?)',
                 [
                   '$newStartDateSTr',
                   '00:00',
@@ -231,10 +233,10 @@ class _MyHomePageState extends State<MyHomePage> {
         Duration durationFromMidnight = currentDateTime.difference(interimDate);
 
         txn.rawInsert(
-            'INSERT INTO ${DbHelper.DAILY_RECORDS_TABLE} ( ${DbHelper
-                .DATE_COLUMN}, ${DbHelper.INITIAL_START_COLUMN}, ${DbHelper
-                .FINAL_SHUTDOWN_COLUMN}, ${DbHelper
-                .DURATION_IN_MINS_COLUMN}) VALUES(?, ?, ?, ?)',
+            'INSERT INTO ${DbHelper.dailySummaryTable} ( ${DbHelper
+                .dateCol}, ${DbHelper.initialStartCol}, ${DbHelper
+                .finalShutdownCol}, ${DbHelper
+                .durationInMinsCol}) VALUES(?, ?, ?, ?)',
             [
               '$endDate',
               '00:00',
@@ -247,11 +249,11 @@ class _MyHomePageState extends State<MyHomePage> {
       print("Duration in hours: ${currentDuration.inHours}");
 
       int id1 = await txn.rawUpdate(
-          'UPDATE ${DbHelper.MAIN_RECORD_TABLE} SET ${DbHelper
-              .END_DATE_COLUMN} = ?, ${DbHelper.END_TIME_COLUMN} = ?, ${DbHelper
-              .END_DATE_TIME_COLUMN} = ?, ${DbHelper
-              .DURATION_IN_MINS_COLUMN} = ? WHERE ${DbHelper
-              .START_DATE_TIME_COLUMN} = ?',
+          'UPDATE ${DbHelper.mainRecordTable} SET ${DbHelper
+              .endDateCol} = ?, ${DbHelper.endTimeCol} = ?, ${DbHelper
+              .endDateTimeCol} = ?, ${DbHelper
+              .durationInMinsCol} = ? WHERE ${DbHelper
+              .startDateTimeCol} = ?',
           [
             '$endDate',
             '$endTime',
@@ -300,27 +302,26 @@ class _MyHomePageState extends State<MyHomePage> {
               child: RaisedButton(
                   padding: EdgeInsets.all(15),
                   shape: StadiumBorder(),
-                  onPressed: !isGenOn ? _startGen : null,
-                  color: Colors.green,
+                  onPressed: !isGenOn ? _startGen : _stopGen,
+                  color: !isGenOn ? Colors.green : Colors.red,
                   disabledTextColor: Colors.green,
                   child: Text(
-                    'Switch On',
+                    !isGenOn ? 'Switch On' : 'Switch Off',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ))),
-          Center(
-              child: RaisedButton(
-                  padding: EdgeInsets.all(15),
-                  shape: StadiumBorder(),
-                  onPressed: isGenOn ? _stopGen : null,
-                  color: Colors.red,
-                  disabledTextColor: Colors.red,
-                  child: Text(
-                    'Switch Off',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  )))
+          // Center(
+          //     child: RaisedButton(
+          //         padding: EdgeInsets.all(15),
+          //         shape: StadiumBorder(),
+          //         onPressed: isGenOn ? _stopGen : null,
+          //         color: Colors.red,
+          //         disabledTextColor: Colors.red[200],
+          //         child: Text(
+          //           'Switch Off',
+          //           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          //         )))
         ],
       ),
     );
   }
-
 }

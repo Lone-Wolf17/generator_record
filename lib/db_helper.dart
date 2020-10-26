@@ -9,20 +9,20 @@ class DbHelper {
 
   static final String DB_NAME = "gen_records.db";
 
-  static final String MAIN_RECORD_TABLE = "main_gen_record";
-  static final String ID_COLUMN = "id";
-  static final String START_DATE_COLUMN = "startDate";
-  static final String START_TIME_COLUMN = "startTime";
-  static final String END_DATE_COLUMN = "endDate";
-  static final String END_TIME_COLUMN = "endTime";
-  static final String START_DATE_TIME_COLUMN = "startDateTime";
-  static final String END_DATE_TIME_COLUMN = "endDateTime";
-  static final String DURATION_IN_MINS_COLUMN = "duration_in_mins";
+  static final String mainRecordTable = "main_gen_record";
+  static final String idCol = "id";
+  static final String startDateCol = "startDate";
+  static final String startTimeCol = "startTime";
+  static final String endDateCol = "endDate";
+  static final String endTimeCol = "endTime";
+  static final String startDateTimeCol = "startDateTime";
+  static final String endDateTimeCol = "endDateTime";
+  static final String durationInMinsCol = "duration_in_mins";
 
-  static final String DAILY_RECORDS_TABLE = "daily_record";
-  static final String DATE_COLUMN = "date";
-  static final String INITIAL_START_COLUMN = "initialStart";
-  static final String FINAL_SHUTDOWN_COLUMN = "finalShutDown";
+  static final String dailySummaryTable = "daily_summary";
+  static final String dateCol = "date";
+  static final String initialStartCol = "initialStart";
+  static final String finalShutdownCol = "finalShutDown";
 
   factory DbHelper() {
     if (_dbHelper == null) {
@@ -56,8 +56,8 @@ class DbHelper {
   void _createDB(Database db, int newVersion) async {
     // When creating the db, create the tables
     await db.execute(
-        'CREATE TABLE $MAIN_RECORD_TABLE ($ID_COLUMN INTEGER PRIMARY KEY, $START_DATE_COLUMN TEXT NOT NULL, $START_TIME_COLUMN TEXT NOT NULL, $END_TIME_COLUMN TEXT, $END_DATE_COLUMN TEXT,  $START_DATE_TIME_COLUMN TEXT UNIQUE NOT NULL, ${DbHelper.END_DATE_TIME_COLUMN} TEXT UNIQUE, $DURATION_IN_MINS_COLUMN INTEGER)');
+        'CREATE TABLE $mainRecordTable ($idCol INTEGER PRIMARY KEY, $startDateCol TEXT NOT NULL, $startTimeCol TEXT NOT NULL, $endTimeCol TEXT, $endDateCol TEXT,  $startDateTimeCol TEXT UNIQUE NOT NULL, ${DbHelper.endDateTimeCol} TEXT UNIQUE, $durationInMinsCol INTEGER)');
     await db.execute(
-        'CREATE TABLE $DAILY_RECORDS_TABLE ($ID_COLUMN INTEGER PRIMARY KEY, $DATE_COLUMN TEXT UNIQUE NOT NULL, $INITIAL_START_COLUMN TEXT NOT NULL, $FINAL_SHUTDOWN_COLUMN TEXT, $DURATION_IN_MINS_COLUMN INTEGER DEFAULT 0)');
+        'CREATE TABLE $dailySummaryTable ($idCol INTEGER PRIMARY KEY, $dateCol TEXT UNIQUE NOT NULL, $initialStartCol TEXT NOT NULL, $finalShutdownCol TEXT, $durationInMinsCol INTEGER DEFAULT 0)');
   }
 }
