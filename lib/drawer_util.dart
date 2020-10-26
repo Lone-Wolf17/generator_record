@@ -38,28 +38,6 @@ class DrawerUtil extends StatelessWidget {
             },
           ),
           Divider(height: 3),
-          Expanded(
-            child: Align(
-              alignment: FractionalOffset.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Divider(height: 3),
-                  ListTile(
-                    title: Text("Log Out"),
-                    trailing: Icon(
-                      Icons.hdr_strong,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Divider(height: 3),
           SizedBox(
             height: 25,
           ),

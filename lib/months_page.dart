@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:generator_record/days_page.dart';
 import 'package:generator_record/utils.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -14,7 +15,7 @@ class MonthsPage extends StatelessWidget {
 
     // Get the records
     List<Map> daysList = await database.rawQuery(
-        'SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY "${DbHelper.dateCol}" DESC');
+        "SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY strftime('%s', '${DbHelper.dateCol}')  DESC");
 
     return daysList;
   }
@@ -53,28 +54,35 @@ class MonthsPage extends StatelessWidget {
 
             List<Widget> list = List();
 
-            map.forEach((key, value) {
+            map.forEach((monthYear, value) {
               Duration duration = Duration(minutes: value);
 
-              list.add(Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: Text(key,
+              list.add(InkWell(
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) =>
+                          DaysPage(whereParams: monthYear,)));
+                },
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                            child: Text(monthYear,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: Colors.primaries[Random()
+                                        .nextInt(Colors.primaries.length)]))),
+                        Expanded(
+                            child: Text(
+                              durationInHoursAndMins(duration),
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                  color: Colors.primaries[Random()
-                                      .nextInt(Colors.primaries.length)]))),
-                      Expanded(
-                          child: Text(
-                        durationInHoursAndMins(duration),
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold),
-                      ))
-                    ],
+                                  fontSize: 15, fontWeight: FontWeight.bold),
+                            ))
+                      ],
+                    ),
                   ),
                 ),
               ));

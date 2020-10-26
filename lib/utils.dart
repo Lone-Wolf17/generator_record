@@ -4,6 +4,7 @@
 
 // TODO :: Ability to manually add time
 
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 String formatIntoDateString(DateTime dateTime) {
@@ -25,4 +26,17 @@ String durationInHoursAndMins(Duration duration) {
   }
 
   return durationStr;
+}
+
+popUntilHomePage(BuildContext context) {
+  Navigator.of(context).popUntil(
+      ModalRoute.withName(Navigator.defaultRouteName));
+}
+
+Widget buildHomeButton(BuildContext context) {
+  return IconButton(
+      icon: Icon(Icons.home_outlined),
+      onPressed: () {
+        popUntilHomePage(context);
+      });
 }

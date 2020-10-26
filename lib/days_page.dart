@@ -6,22 +6,44 @@ import 'package:generator_record/utils.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DaysPage extends StatelessWidget {
+  final String whereParams; // This is optional
+
+  DaysPage({this.whereParams});
+
   Future<List<Map>> _readDB() async {
     // open the database
     Database database = await DbHelper().database;
 
+    String whereClause = "";
+
+    // add where clause only if where Params is available
+    if (whereParams != null) {
+      List split = whereParams.split('-20');
+      String querableStr = split[0] + "-" + split[1];
+      whereClause = "WHERE ${DbHelper.dateCol} LIKE '%$querableStr'";
+    }
+
+    String queryString =
+        "SELECT * FROM ${DbHelper.dailySummaryTable} $whereClause ORDER BY strftime('%s', '${DbHelper.dateCol}') ASC";
+
+    print(queryString);
+
     // Get the records
-    List<Map> daysList = await database.rawQuery(
-        'SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY "${DbHelper.dateCol}" DESC');
+    List<Map> daysList = await database.rawQuery(queryString);
 
     return daysList;
   }
 
   @override
   Widget build(BuildContext context) {
+    String title = whereParams != null ? whereParams : "Days Record";
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Days Record"),
+        title: Text(title),
+        actions: [
+          buildHomeButton(context)
+        ],
       ),
       body: FutureBuilder<List<Map>>(
         future: _readDB(),
@@ -100,6 +122,8 @@ class DaysPage extends StatelessWidget {
                         )),
                   );
                 });
+          } else if (snapshot.hasError) {
+            Center(child: Text("Error:: ${snapshot.error}"),);
           }
 
           return Center(
@@ -135,12 +159,7 @@ class SingleDayRecordPage extends StatelessWidget {
       appBar: AppBar(
         title: Text("Date: $dateStr"),
         actions: [
-          IconButton(
-              icon: Icon(Icons.home_outlined),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              })
+          buildHomeButton(context)
         ],
       ),
       body: Column(
@@ -179,79 +198,80 @@ class SingleDayRecordPage extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            margin: const EdgeInsets.only(left: 4, top: 0, right: 4, bottom: 4),
-            child: FutureBuilder(
-                future: _readDateRecordsFromDB(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    print(snapshot.data);
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(
+                  left: 4, top: 0, right: 4, bottom: 4),
+              child: FutureBuilder(
+                  future: _readDateRecordsFromDB(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: snapshot.data.length,
+                          itemBuilder: (context, index) {
+                            String durationStr = "";
 
-                    return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshot.data.length,
-                        itemBuilder: (context, index) {
-                          String durationStr = "";
+                            /* If End Time || End Date || duration Colloum is null
+                              It most likely means that gen is still On for that record,
+                              Hence no End Time, Date and Duration yet,
+                              We therefore we provide a placeholder value, so
+                              that null value is not used
+                            */
 
-                          /* If End Time || End Date || duration Colloum is null
-                            It most likely means that gen is still On for that record,
-                            Hence no End Time, Date and Duration yet,
-                            We therefore we provide a placeholder value, so
-                            that null value is not used
-                          */
+                            if (snapshot.data[index]
+                            [DbHelper.durationInMinsCol] ==
+                                null) {
+                              durationStr = "Still ON";
+                            } else {
+                              Duration duration = Duration(
+                                  minutes: snapshot.data[index]
+                                  [DbHelper.durationInMinsCol]);
 
-                          if (snapshot.data[index]
-                          [DbHelper.durationInMinsCol] ==
-                              null) {
-                            durationStr = "Still ON";
-                          } else {
-                            Duration duration = Duration(
-                                minutes: snapshot.data[index]
-                                [DbHelper.durationInMinsCol]);
+                              durationStr = durationInHoursAndMins(duration);
+                            }
 
-                            durationStr = durationInHoursAndMins(duration);
-                          }
+                            String shutdownDate = "";
 
-                          String shutdownDate = "";
+                            if (snapshot.data[index][DbHelper.endDateCol] ==
+                                null) {
+                              shutdownDate = "Still ON";
+                            } else if (snapshot.data[index]
+                            [DbHelper.startDateCol] ==
+                                snapshot.data[index][DbHelper.endDateCol]) {
+                              shutdownDate = "Same Day";
+                            } else {
+                              shutdownDate =
+                              snapshot.data[index][DbHelper.endDateCol];
+                            }
 
-                          if (snapshot.data[index][DbHelper.endDateCol] ==
-                              null) {
-                            shutdownDate = "Still ON";
-                          } else if (snapshot.data[index]
-                          [DbHelper.startDateCol] ==
-                              snapshot.data[index][DbHelper.endDateCol]) {
-                            shutdownDate = "Same Day";
-                          } else {
-                            shutdownDate =
-                            snapshot.data[index][DbHelper.endDateCol];
-                          }
+                            String endTimeStr = snapshot.data[index]
+                            [DbHelper.endTimeCol] ==
+                                null
+                                ? "Still On"
+                                : snapshot.data[index][DbHelper.endTimeCol];
 
-                          String endTimeStr = snapshot.data[index]
-                          [DbHelper.endTimeCol] ==
-                              null
-                              ? "Still On"
-                              : snapshot.data[index][DbHelper.endTimeCol];
+                            return Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                      child: Text(snapshot.data[index]
+                                      [DbHelper.startTimeCol])),
+                                  Expanded(child: Text(endTimeStr)),
+                                  Expanded(child: Text(shutdownDate)),
+                                  Expanded(child: Text(durationStr)),
+                                ],
+                              ),
+                            );
+                          });
+                    }
 
-                          return Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                    child: Text(snapshot.data[index]
-                                    [DbHelper.startTimeCol])),
-                                Expanded(child: Text(endTimeStr)),
-                                Expanded(child: Text(shutdownDate)),
-                                Expanded(child: Text(durationStr)),
-                              ],
-                            ),
-                          );
-                        });
-                  }
-
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }),
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }),
+            ),
           ),
         ],
       ),
