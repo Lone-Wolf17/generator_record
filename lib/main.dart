@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:generator_record/days_page.dart';
 import 'package:generator_record/db_helper.dart';
+import 'package:generator_record/drawer_util.dart';
 import 'package:generator_record/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
@@ -279,14 +279,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Big Gen Records"),
-        actions: [
-          IconButton(
-              icon: Icon(Icons.remove_red_eye),
-              onPressed: () {
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => DaysPage()));
-              })
-        ],
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -322,6 +314,7 @@ class _MyHomePageState extends State<MyHomePage> {
           //         )))
         ],
       ),
+      drawer: DrawerUtil(),
     );
   }
 }
