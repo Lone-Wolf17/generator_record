@@ -15,7 +15,7 @@ class MonthsPage extends StatelessWidget {
 
     // Get the records
     List<Map> daysList = await database.rawQuery(
-        "SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY strftime('%s', '${DbHelper.dateCol}')  DESC");
+        "SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY ${DbHelper.dateTimeCol} DESC");
 
     return daysList;
   }

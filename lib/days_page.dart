@@ -24,7 +24,7 @@ class DaysPage extends StatelessWidget {
     }
 
     String queryString =
-        "SELECT * FROM ${DbHelper.dailySummaryTable} $whereClause ORDER BY strftime('%s', '${DbHelper.dateCol}') ASC";
+        "SELECT * FROM ${DbHelper.dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
 
     print(queryString);
 

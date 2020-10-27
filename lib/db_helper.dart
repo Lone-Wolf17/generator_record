@@ -21,6 +21,7 @@ class DbHelper {
 
   static final String dailySummaryTable = "daily_summary";
   static final String dateCol = "date";
+  static final String dateTimeCol = "dateTime";
   static final String initialStartCol = "initialStart";
   static final String finalShutdownCol = "finalShutDown";
 
@@ -58,6 +59,6 @@ class DbHelper {
     await db.execute(
         'CREATE TABLE $mainRecordTable ($idCol INTEGER PRIMARY KEY, $startDateCol TEXT NOT NULL, $startTimeCol TEXT NOT NULL, $endTimeCol TEXT, $endDateCol TEXT,  $startDateTimeCol TEXT UNIQUE NOT NULL, ${DbHelper.endDateTimeCol} TEXT UNIQUE, $durationInMinsCol INTEGER)');
     await db.execute(
-        'CREATE TABLE $dailySummaryTable ($idCol INTEGER PRIMARY KEY, $dateCol TEXT UNIQUE NOT NULL, $initialStartCol TEXT NOT NULL, $finalShutdownCol TEXT, $durationInMinsCol INTEGER DEFAULT 0)');
+        'CREATE TABLE $dailySummaryTable ($idCol INTEGER PRIMARY KEY, $dateCol TEXT UNIQUE NOT NULL, $initialStartCol TEXT NOT NULL, $finalShutdownCol TEXT, $durationInMinsCol INTEGER DEFAULT 0, $dateTimeCol TEXT NOT NULL)');
   }
 }

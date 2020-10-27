@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (!prefs.containsKey(firstDate)) {
       // if this is the first run of app
-      prefs.setString(firstDate, DateTime.now().toUtc().toString());
+      prefs.setString(firstDate, DateTime.now().toIso8601String());
     }
 
     // open the database
@@ -80,10 +80,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
       String startTime = formatIntoTimeString(currentDateTime);
 
-      prefs.setString("startTime", currentDateTime.toUtc().toString());
+      prefs.setString(
+          "startTime", currentDateTime.toIso8601String().toString());
       int id1 = await txn
-          .rawInsert(
-              'INSERT INTO ${DbHelper.mainRecordTable} (${DbHelper.startDateCol}, ${DbHelper.startTimeCol}, ${DbHelper.startDateTimeCol}) VALUES("$startDate", "$startTime", "${currentDateTime.toUtc()}")')
+          .rawInsert('INSERT INTO ${DbHelper.mainRecordTable} '
+              '(${DbHelper.startDateCol}, ${DbHelper.startTimeCol}, ${DbHelper.startDateTimeCol}) '
+              'VALUES("$startDate", "$startTime", "${currentDateTime.toIso8601String()}")')
           .then((value) {
         setState(() {
           isGenOn = true;
@@ -98,10 +100,16 @@ class _MyHomePageState extends State<MyHomePage> {
               .dateCol} = '$startDate' ");
 
       if (list.isEmpty) {
+        DateTime currentDate = DateTime(
+            currentDateTime.year, currentDateTime.month, currentDateTime.day);
+
         txn.rawInsert(
-            "INSERT INTO ${DbHelper.dailySummaryTable} (${DbHelper
-                .dateCol}, ${DbHelper.initialStartCol}) VALUES(?, ?)",
-            ['$startDate', '$startTime']);
+            "INSERT INTO ${DbHelper.dailySummaryTable} ("
+                "${DbHelper.dateCol},"
+                " ${DbHelper.initialStartCol},"
+                " ${DbHelper.dateTimeCol}"
+                ") VALUES(?, ?, ?)",
+            ['$startDate', '$startTime', '${currentDate.toIso8601String()}']);
       }
 
     });
@@ -182,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
         DateTime newStartDate = startTime.add(Duration(days: 1));
 
         newStartDate = DateTime(
-            newStartDate.year, newStartDate.month, newStartDate.day, 00, 00);
+            newStartDate.year, newStartDate.month, newStartDate.day);
 
 
         while (currentDateTime.day - newStartDate.day != 0 &&
@@ -201,15 +209,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
           if (result.isEmpty) {
             txn.rawInsert(
-                'INSERT INTO ${DbHelper.dailySummaryTable} ( ${DbHelper
-                    .dateCol}, ${DbHelper.initialStartCol}, ${DbHelper
-                    .finalShutdownCol}, ${DbHelper
-                    .durationInMinsCol}) VALUES(?, ?, ?, ?)',
+                'INSERT INTO ${DbHelper.dailySummaryTable} ( '
+                    ' ${DbHelper.dateCol},'
+                    ' ${DbHelper.initialStartCol},'
+                    ' ${DbHelper.finalShutdownCol},'
+                    ' ${DbHelper.durationInMinsCol}'
+                    ' ${DbHelper.dateTimeCol}'
+                    ') VALUES(?, ?, ?, ?, ?)',
                 [
                   '$newStartDateSTr',
                   '00:00',
                   '23:59',
-                  1440
+                  1440,
+                  newStartDate.toIso8601String()
                 ]);
           }
 
@@ -221,28 +233,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
           newStartDate = newStartDate.add(Duration(days: 1));
           newStartDate = DateTime(
-              newStartDate.year, newStartDate.month, newStartDate.day, 00, 00);
+              newStartDate.year, newStartDate.month, newStartDate.day);
         }
 
 
         // Now record that the gen was on from 12 midnight for present day
 
-        // Interim date is midnight the current day
-        DateTime interimDate = DateTime(
-            currentDateTime.year, currentDateTime.month, currentDateTime.day,
-            00, 00);
-        Duration durationFromMidnight = currentDateTime.difference(interimDate);
+        // Current date is midnight the current day
+        DateTime currentDate = DateTime(
+            currentDateTime.year, currentDateTime.month, currentDateTime.day);
+        Duration durationFromMidnight = currentDateTime.difference(currentDate);
 
         txn.rawInsert(
-            'INSERT INTO ${DbHelper.dailySummaryTable} ( ${DbHelper
-                .dateCol}, ${DbHelper.initialStartCol}, ${DbHelper
-                .finalShutdownCol}, ${DbHelper
-                .durationInMinsCol}) VALUES(?, ?, ?, ?)',
+            'INSERT INTO ${DbHelper.dailySummaryTable} ( '
+                '${DbHelper.dateCol},'
+                ' ${DbHelper.initialStartCol},'
+                ' ${DbHelper.finalShutdownCol},'
+                ' ${DbHelper.durationInMinsCol}'
+                ' ${DbHelper.dateTimeCol}'
+                ') VALUES(?, ?, ?, ?, ?)',
             [
               '$endDate',
               '00:00',
               '$endTime',
-              (durationFromMidnight)
+              (durationFromMidnight),
+              currentDate.toIso8601String()
             ]);
       }
 
@@ -258,7 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
           [
             '$endDate',
             '$endTime',
-            "${currentDateTime.toUtc()}",
+            "${currentDateTime.toIso8601String()}",
             currentDuration.inMinutes,
             '$startTimeStr'
           ]).then((value) {
@@ -302,17 +317,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     !isGenOn ? 'Switch On' : 'Switch Off',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ))),
-          // Center(
-          //     child: RaisedButton(
-          //         padding: EdgeInsets.all(15),
-          //         shape: StadiumBorder(),
-          //         onPressed: isGenOn ? _stopGen : null,
-          //         color: Colors.red,
-          //         disabledTextColor: Colors.red[200],
-          //         child: Text(
-          //           'Switch Off',
-          //           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          //         )))
         ],
       ),
       drawer: DrawerUtil(),
