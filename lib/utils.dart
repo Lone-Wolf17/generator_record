@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+enum PowerState { No_Light, Nepa, Small_Gen, Big_Gen, Unknown }
+
 String formatIntoDateString(DateTime dateTime) {
   return DateFormat('dd-MMM-yy').format(dateTime);
 }
