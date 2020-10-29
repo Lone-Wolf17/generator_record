@@ -233,8 +233,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _storeToDB(PowerState newState) async {
+
     _startState(
         Transaction txn, PowerState state, DateTime currentDateTime) async {
+
       String startDateStr = formatIntoDateString(currentDateTime);
       String startTimeStr = formatIntoDateString(currentDateTime);
       String stateStr = EnumToString.convertToString(state);
@@ -333,8 +335,10 @@ class _MyHomePageState extends State<MyHomePage> {
             '$startTimeStr',
             '$stateStr'
           ]).then((value) {
+
         print('Main Records Table: $stateStr switched off');
         return value;
+
       });
 
       /* Updating the Daily Records Table isn't as straight forward as the main records table
@@ -353,6 +357,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (currentDateTime.day == startTime.day &&
           currentDateTime.month == startTime.month &&
           currentDateTime.year == startTime.year) {
+
         // State changed the same day it was set.
         /// This is straight forward,just update the row and move on
         await txn.rawUpdate(
@@ -369,6 +374,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ] // Since same date, endDate is equal to start date
             );
       } else {
+
         // Gen may have been switch on over the night.
         // record that gen was on till 12 midnight the previous day
         // then record that gen on from midnight the present day
@@ -381,10 +387,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
         int id1 = await txn.rawUpdate(
             'UPDATE ${DbHelper.dailySummaryTable}'
-            ' SET ${DbHelper.finalShutdownCol} = ?,'
-            ' ${DbHelper.durationInMinsCol} = ?'
-            ' WHERE ${DbHelper.dateCol} = ?'
-            ' AND ${DbHelper.powerSourceCol} = ?',
+                ' SET ${DbHelper.finalShutdownCol} = ?,'
+                ' ${DbHelper.durationInMinsCol} = ?'
+                ' WHERE ${DbHelper.dateCol} = ?'
+                ' AND ${DbHelper.powerSourceCol} = ?',
             [
               '23:59',
               oldDurationInMins + firstDayDurationInMins,
@@ -398,6 +404,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // reinitialise the startDate as to make it at Midnight
         newStartDate =
             DateTime(newStartDate.year, newStartDate.month, newStartDate.day);
+
 
         // do this till the startDate and currentdate are the same day
         // also check that the current date is not before the start date. That is an error
@@ -476,23 +483,71 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
+
     DateTime currentDateTime = DateTime.now();
     String startDateStr = formatIntoDateString(currentDateTime);
 
     await database.transaction((txn) async {
+
       //TODO : save start time to prefs
       // TODO:: save new state to Prefs
       if (newState == PowerState.No_Light) {
         // Just Close or End the current state on DB
-
+        await _endState(txn, currentPowerState, currentDateTime);
       } else if (currentPowerState == PowerState.No_Light) {
         // Just Start the new State on DB
+        await _startState(txn, newState, currentDateTime);
       } else {
         // end the old state on DB , Then start the new State on DB
+        await _endState(txn, currentPowerState, currentDateTime);
+        await _startState(txn, newState, currentDateTime);
       }
     }).then((value) {
       _updateUI(newState);
       prefs.setString(stateStartTime, currentDateTime.toIso8601String());
+    }).catchError((error, stackTrace) {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Error!!!!"),
+              content: Container(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      "An Unexpected Database Error Occurred while trying to change state from $currentPowerState to $newState."
+                          "Please Contact developer",
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: RaisedButton(
+                                child: Text(
+                                  "Okay",
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                }),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            );
+          });
+
+      print("Transaction Error!!! XXXXXXXXXx");
+      print(error);
+      print("STACKTRACE!!! XXXXXXXXXx");
+      print(stackTrace);
     });
   }
 
@@ -753,128 +808,153 @@ class _MyHomePageState extends State<MyHomePage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Text(
-          heading,
-          style: TextStyle(
-              fontWeight: FontWeight.bold, color: txtColor, fontSize: 25),
+        Expanded(
+          child: Card(
+            elevation: 2,
+            shadowColor: Colors.grey,
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: Text(
+                  heading,
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: txtColor,
+                      fontSize: 25),
+                ),
+              ),
+            ),
+          ),
         ),
-        Container(
-          child: Center(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  key: forceRebuild,
-                  child: DoubleCircularSlider(
-                    100,
-                    sliderStartMap[currentPowerState],
-                    sliderEndMap[currentPowerState],
-                    height: 300,
-                    width: 300,
-                    baseColor: Colors.grey,
-                    selectionColor: txtColor,
-                    primarySectors: 4,
-                  ),
-                ),
-                GestureDetector(
-                  onPanUpdate: _panHandler,
-                  child: Container(
-                    height: 300,
-                    width: 300,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.transparent,
+        Expanded(
+          flex: 2,
+          child: Card(
+            elevation: 3,
+            shadowColor: Colors.grey,
+            margin: const EdgeInsets.only(
+                left: 12, right: 12, bottom: 32, top: 12),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      key: forceRebuild,
+                      child: DoubleCircularSlider(
+                        100,
+                        sliderStartMap[currentPowerState],
+                        sliderEndMap[currentPowerState],
+                        height: 300,
+                        width: 300,
+                        baseColor: Colors.grey,
+                        selectionColor: txtColor,
+                        primarySectors: 4,
+                      ),
                     ),
-                    child: Stack(
-                      children: [
-                        Container(
-                          alignment: Alignment.topCenter,
-                          margin: const EdgeInsets.only(top: 36),
-                          child: InkWell(
-                            onTap: currentPowerState == PowerState.Nepa
-                                ? () {}
-                                : () {
-                              showMyDialog(context, PowerState.Nepa);
-                            },
-                            child: Text("NEPA",
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: currentPowerState != PowerState.Nepa
-                                        ? Colors.grey
-                                        : Colors.green)),
-                          ),
+                    GestureDetector(
+                      onPanUpdate: _panHandler,
+                      child: Container(
+                        height: 300,
+                        width: 300,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.transparent,
                         ),
-                        Container(
-                          alignment: Alignment.centerRight,
-                          margin: const EdgeInsets.only(right: 30),
-                          child: InkWell(
-                            onTap: currentPowerState == PowerState.Small_Gen
-                                ? () {}
-                                : () {
-                              showMyDialog(context, PowerState.Small_Gen);
-                            },
-                            child: Text("S Gen",
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: currentPowerState !=
-                                        PowerState.Small_Gen
-                                        ? Colors.grey
-                                        : Colors.green)),
-                          ),
+                        child: Stack(
+                          children: [
+                            Container(
+                              alignment: Alignment.topCenter,
+                              margin: const EdgeInsets.only(top: 36),
+                              child: InkWell(
+                                onTap: currentPowerState == PowerState.Nepa
+                                    ? () {}
+                                    : () {
+                                  showMyDialog(context, PowerState.Nepa);
+                                },
+                                child: Text("NEPA",
+                                    style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: currentPowerState !=
+                                            PowerState.Nepa
+                                            ? Colors.grey
+                                            : Colors.green)),
+                              ),
+                            ),
+                            Container(
+                              alignment: Alignment.centerRight,
+                              margin: const EdgeInsets.only(right: 30),
+                              child: InkWell(
+                                onTap: currentPowerState == PowerState.Small_Gen
+                                    ? () {}
+                                    : () {
+                                  showMyDialog(context, PowerState.Small_Gen);
+                                },
+                                child: Text("S Gen",
+                                    style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: currentPowerState !=
+                                            PowerState.Small_Gen
+                                            ? Colors.grey
+                                            : Colors.green)),
+                              ),
+                            ),
+                            Container(
+                              alignment: Alignment.centerLeft,
+                              margin: const EdgeInsets.only(left: 30),
+                              child: InkWell(
+                                onTap: currentPowerState == PowerState.Big_Gen
+                                    ? () {}
+                                    : () {
+                                  showMyDialog(context, PowerState.Big_Gen);
+                                },
+                                child: Text("B Gen",
+                                    style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                        currentPowerState != PowerState.Big_Gen
+                                            ? Colors.grey
+                                            : Colors.green)),
+                              ),
+                            ),
+                            Container(
+                              alignment: Alignment.bottomCenter,
+                              margin: const EdgeInsets.only(bottom: 30),
+                              child: InkWell(
+                                onTap: currentPowerState == PowerState.No_Light
+                                    ? () {}
+                                    : () {
+                                  showMyDialog(context, PowerState.No_Light);
+                                },
+                                child: Text("NO LIGHT",
+                                    style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                        currentPowerState != PowerState.No_Light
+                                            ? Colors.grey
+                                            : Colors.red)),
+                              ),
+                            ),
+                          ],
                         ),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          margin: const EdgeInsets.only(left: 30),
-                          child: InkWell(
-                            onTap: currentPowerState == PowerState.Big_Gen
-                                ? () {}
-                                : () {
-                              showMyDialog(context, PowerState.Big_Gen);
-                            },
-                            child: Text("B Gen",
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                    currentPowerState != PowerState.Big_Gen
-                                        ? Colors.grey
-                                        : Colors.green)),
-                          ),
-                        ),
-                        Container(
-                          alignment: Alignment.bottomCenter,
-                          margin: const EdgeInsets.only(bottom: 30),
-                          child: InkWell(
-                            onTap: currentPowerState == PowerState.No_Light
-                                ? () {}
-                                : () {
-                              showMyDialog(context, PowerState.No_Light);
-                            },
-                            child: Text("NO LIGHT",
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                    currentPowerState != PowerState.No_Light
-                                        ? Colors.grey
-                                        : Colors.red)),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Container(
+                      height: 100,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  height: 100,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white38,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -886,7 +966,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Big Gen Records"),
+        title: Text("Power State Records"),
       ),
       body: _buildNewUI(context),
       drawer: DrawerUtil(),

@@ -66,12 +66,12 @@ class DbHelper {
         ' $endDateCol TEXT,'
         ' $startDateTimeCol TEXT UNIQUE NOT NULL,'
         ' $endDateTimeCol TEXT UNIQUE,'
-        ' $durationInMinsCol INTEGER,)');
+        ' $durationInMinsCol INTEGER)');
 
     await db.execute('CREATE TABLE $dailySummaryTable ('
         ' $idCol INTEGER PRIMARY KEY,'
-        ' $powerSourceCol TEXT NOT NULL'
-        ' $dateCol TEXT UNIQUE NOT NULL,'
+        ' $powerSourceCol TEXT NOT NULL,'
+        ' $dateCol TEXT NOT NULL,'
         ' $initialStartCol TEXT NOT NULL,'
         ' $finalShutdownCol TEXT,'
         ' $durationInMinsCol INTEGER DEFAULT 0,'
