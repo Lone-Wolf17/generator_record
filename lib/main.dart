@@ -37,6 +37,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String genState = "gen_state";
   String powerState = "power_state";
   String firstDate = "firstDate";
+  String stateStartTime = "stateStartTime";
+
   bool isGenOn = false;
   Database database;
 
@@ -203,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(color: Colors.green),
                               ),
                               onPressed: () {
-                                _setPowerState(newState);
+                                _storeToDB(newState);
                                 Navigator.pop(context);
                               }),
                         ),
@@ -217,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
-  _setPowerState(PowerState newState) {
+  _updateUI(PowerState newState) {
     setState(() {
       heading = powerStateMap[newState];
       currentPowerState = newState;
@@ -225,9 +227,273 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     PowerState prevState =
         EnumToString.fromString(PowerState.values, prefs.getString(powerState));
-    print("Previous gen State: ${powerStateMap[prevState]}");
+    print("Previous Power State: ${powerStateMap[prevState]}");
     prefs.setString(powerState, EnumToString.convertToString(newState));
-    print("New gen State: ${powerStateMap[newState]}");
+    print("New Power State: ${powerStateMap[newState]}");
+  }
+
+  _storeToDB(PowerState newState) async {
+    _startState(
+        Transaction txn, PowerState state, DateTime currentDateTime) async {
+      String startDateStr = formatIntoDateString(currentDateTime);
+      String startTimeStr = formatIntoDateString(currentDateTime);
+      String stateStr = EnumToString.convertToString(state);
+
+      int id1 = await txn.rawInsert(
+          'INSERT INTO ${DbHelper.mainRecordTable} ('
+          ' ${DbHelper.startDateCol},'
+          ' ${DbHelper.startTimeCol},'
+          ' ${DbHelper.startDateTimeCol},'
+          ' ${DbHelper.powerSourceCol}) '
+          'VALUES(?, ?, ?, ?)',
+          [
+            "$startDateStr",
+            "$startTimeStr",
+            "${currentDateTime.toIso8601String()}",
+            "$stateStr"
+          ]).then((value) {
+        print('New State Started on DB: $state');
+        return value;
+      });
+
+      // Get the records
+      List<Map> list =
+          await txn.rawQuery("SELECT * FROM ${DbHelper.dailySummaryTable}"
+              " WHERE ${DbHelper.dateCol} = '$startDateStr' "
+              " AND ${DbHelper.powerSourceCol} = '$stateStr' ");
+
+      if (list.isEmpty) {
+        DateTime currentDate = DateTime(
+            currentDateTime.year, currentDateTime.month, currentDateTime.day);
+
+        txn.rawInsert(
+            "INSERT INTO ${DbHelper.dailySummaryTable} ("
+            " ${DbHelper.dateCol},"
+            " ${DbHelper.initialStartCol},"
+            " ${DbHelper.dateTimeCol},"
+            " ${DbHelper.powerSourceCol}"
+            ") VALUES(?, ?, ?, ?)",
+            [
+              '$startDateStr',
+              '$startTimeStr',
+              '${currentDate.toIso8601String()}',
+              '$stateStr'
+            ]);
+      }
+    }
+
+    _endState(
+        Transaction txn, PowerState state, DateTime currentDateTime) async {
+      String stateStr = EnumToString.convertToString(state);
+
+      String endDateStr = formatIntoDateString(currentDateTime);
+      String endTimeStr = formatIntoTimeString(currentDateTime);
+
+      String startTimeStr = prefs.getString(stateStartTime);
+      DateTime startTime = DateTime.parse(startTimeStr);
+      Duration currentDuration = currentDateTime.difference(startTime);
+
+      print("StartTime: $startTimeStr");
+      String startDateStr = formatIntoDateString(startTime);
+
+      List<Map> list = await txn.rawQuery(
+          "SELECT ${DbHelper.durationInMinsCol} FROM ${DbHelper.dailySummaryTable}"
+          " WHERE ${DbHelper.dateCol} = '$startDateStr' "
+          " AND ${DbHelper.powerSourceCol} = '$stateStr' ");
+
+      int oldDurationInMins = 0;
+
+      if (list.length == 1) {
+        oldDurationInMins = list.first[DbHelper.durationInMinsCol];
+      } else if (list.length == 0) {
+        print(
+            "ERROR: About to Change Power State and Daily Record table has no record for Previous Gen State for present day");
+      } else {
+        print(
+            "ERROR: About to Change Power State and Daily Record table has more than one record for Previous Gen State for present day");
+      }
+
+      print("Duration in minutes: ${currentDuration.inMinutes}");
+      print("Duration in hours: ${currentDuration.inHours}");
+
+      // Update the main Records Table
+      int id1 = await txn.rawUpdate(
+          'UPDATE ${DbHelper.mainRecordTable}'
+          ' SET ${DbHelper.endDateCol} = ?,'
+          ' ${DbHelper.endTimeCol} = ?,'
+          ' ${DbHelper.endDateTimeCol} = ?,'
+          ' ${DbHelper.durationInMinsCol} = ? '
+          ' WHERE ${DbHelper.startDateTimeCol} = ?'
+          ' AND ${DbHelper.powerSourceCol} = ?',
+          [
+            '$endDateStr',
+            '$endTimeStr',
+            "${currentDateTime.toIso8601String()}",
+            currentDuration.inMinutes,
+            '$startTimeStr',
+            '$stateStr'
+          ]).then((value) {
+        print('Main Records Table: $stateStr switched off');
+        return value;
+      });
+
+      /* Updating the Daily Records Table isn't as straight forward as the main records table
+        We have to check that if the Power state is being changed the same day it was set
+        If it wasn't, we have to record for each day, the corresponding power state
+        Like it the Big Gen is On from 10pm the previous day to 9 Am the current day,
+        We have to record that for the previous day the Big Gen was On till the midnight (End of the day)
+        and that it was on from midnight (beginning of the day) the current day till 9 am.
+
+        If this State has over a couple of days then for each day,
+         we would record that we were on this state for 24 hours
+         Then for the last day which is the current day we would record the end time
+      */
+
+      // Check if Power Source State is being changed the same day it was set
+      if (currentDateTime.day == startTime.day &&
+          currentDateTime.month == startTime.month &&
+          currentDateTime.year == startTime.year) {
+        // State changed the same day it was set.
+        /// This is straight forward,just update the row and move on
+        await txn.rawUpdate(
+            'UPDATE ${DbHelper.dailySummaryTable}'
+            ' SET  ${DbHelper.finalShutdownCol} = ?,'
+            ' ${DbHelper.durationInMinsCol} = ?'
+            ' WHERE ${DbHelper.dateCol} = ?'
+            ' AND ${DbHelper.powerSourceCol} = ?',
+            [
+              '$endTimeStr',
+              oldDurationInMins + currentDuration.inMinutes,
+              endDateStr,
+              stateStr
+            ] // Since same date, endDate is equal to start date
+            );
+      } else {
+        // Gen may have been switch on over the night.
+        // record that gen was on till 12 midnight the previous day
+        // then record that gen on from midnight the present day
+
+        //to get the duration for previous day subtract the startTime in Minutes frm 1440
+        // where 1440 is the total number of mins in a day (24*60)
+
+        int firstDayDurationInMins =
+            (1440 - (startTime.hour * 60) + (startTime.minute));
+
+        int id1 = await txn.rawUpdate(
+            'UPDATE ${DbHelper.dailySummaryTable}'
+            ' SET ${DbHelper.finalShutdownCol} = ?,'
+            ' ${DbHelper.durationInMinsCol} = ?'
+            ' WHERE ${DbHelper.dateCol} = ?'
+            ' AND ${DbHelper.powerSourceCol} = ?',
+            [
+              '23:59',
+              oldDurationInMins + firstDayDurationInMins,
+              '$startDateStr',
+              '$stateStr'
+            ]);
+
+        // Add a duration of 1 day shift start date by 1 day
+        DateTime newStartDate = startTime.add(Duration(days: 1));
+
+        // reinitialise the startDate as to make it at Midnight
+        newStartDate =
+            DateTime(newStartDate.year, newStartDate.month, newStartDate.day);
+
+        // do this till the startDate and currentdate are the same day
+        // also check that the current date is not before the start date. That is an error
+        while (!currentDateTime.isSameDate(newStartDate) &&
+            currentDateTime.isAfter(newStartDate)) {
+          String newStartDateSTr = formatIntoDateString(newStartDate);
+
+          // check if a row exist for newDate in Daily Records Table
+          // A row ideally shouldn't exist but we can never be too careful
+
+          String queryStr =
+              "SELECT ${DbHelper.dateCol} FROM ${DbHelper.dailySummaryTable}"
+              " WHERE ${DbHelper.dateCol} ='$newStartDateSTr'"
+              " AND ${DbHelper.powerSourceCol} = $stateStr";
+
+          var result = await txn.rawQuery(queryStr);
+
+          if (result.isEmpty) {
+            txn.rawInsert(
+                'INSERT INTO ${DbHelper.dailySummaryTable} ( '
+                ' ${DbHelper.dateCol},'
+                ' ${DbHelper.initialStartCol},'
+                ' ${DbHelper.finalShutdownCol},'
+                ' ${DbHelper.durationInMinsCol},'
+                ' ${DbHelper.dateTimeCol}, '
+                ' ${DbHelper.powerSourceCol}'
+                ') VALUES(?, ?, ?, ?, ?, ?)',
+                [
+                  '$newStartDateSTr',
+                  '00:00',
+                  '23:59',
+                  1440,
+                  newStartDate.toIso8601String(),
+                  stateStr
+                ]);
+          }
+
+          /*
+          We are not inserting a new row in the main table for each day because it doesn't follow how it was done in reality.
+          For example, when the gen is left overnight, it isnt seen as it is switched off by 23:59 today and switched on by 00:00 the next day
+          The average person just understands it as the gen was switched on by 10 pm and switched off by 6am the next day
+          */
+
+          // Move to next day
+          newStartDate = newStartDate.add(Duration(days: 1));
+          newStartDate =
+              DateTime(newStartDate.year, newStartDate.month, newStartDate.day);
+        }
+
+        /// End While Loop
+
+        // Now record that the gen was on from 12 midnight for present day
+        // Current date is midnight the current day
+        /// At this point newStartDate and CurrentDate should be the same date
+        DateTime currentDate = DateTime(
+            currentDateTime.year, currentDateTime.month, currentDateTime.day);
+        Duration durationFromMidnight = currentDateTime.difference(currentDate);
+
+        txn.rawInsert(
+            'INSERT INTO ${DbHelper.dailySummaryTable} ( '
+            '${DbHelper.dateCol},'
+            ' ${DbHelper.initialStartCol},'
+            ' ${DbHelper.finalShutdownCol},'
+            ' ${DbHelper.durationInMinsCol},'
+            ' ${DbHelper.dateTimeCol},'
+            ' ${DbHelper.powerSourceCol}'
+            ') VALUES(?, ?, ?, ?, ?, ?)',
+            [
+              '$endDateStr',
+              '00:00',
+              '$endTimeStr',
+              (durationFromMidnight),
+              currentDate.toIso8601String(),
+              stateStr
+            ]);
+      }
+    }
+
+    DateTime currentDateTime = DateTime.now();
+    String startDateStr = formatIntoDateString(currentDateTime);
+
+    await database.transaction((txn) async {
+      //TODO : save start time to prefs
+      // TODO:: save new state to Prefs
+      if (newState == PowerState.No_Light) {
+        // Just Close or End the current state on DB
+
+      } else if (currentPowerState == PowerState.No_Light) {
+        // Just Start the new State on DB
+      } else {
+        // end the old state on DB , Then start the new State on DB
+      }
+    }).then((value) {
+      _updateUI(newState);
+      prefs.setString(stateStartTime, currentDateTime.toIso8601String());
+    });
   }
 
   _startGen() async {
@@ -241,6 +507,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       prefs.setString(
           "startTime", currentDateTime.toIso8601String().toString());
+
       int id1 = await txn
           .rawInsert('INSERT INTO ${DbHelper.mainRecordTable} '
           '(${DbHelper.startDateCol}, ${DbHelper.startTimeCol}, ${DbHelper
@@ -299,6 +566,7 @@ class _MyHomePageState extends State<MyHomePage> {
               .dailySummaryTable} WHERE ${DbHelper
               .dateCol} = '$startDateStr' ");
       int oldDurationInMins = 0;
+
       if (list.length == 1) {
         oldDurationInMins = list.first[DbHelper.durationInMinsCol];
       } else if (list.length == 0) {
@@ -309,14 +577,16 @@ class _MyHomePageState extends State<MyHomePage> {
             "ERROR: About to switch-off gen and Daily Record table has more than one record for present day");
       }
 
+      // Check if Gen is being switched off the same day it was switched on
       if (currentDateTime.day == startTime.day &&
           currentDateTime.month == startTime.month &&
           currentDateTime.year == startTime.year) {
         // gen was shutdown the same day it was switched on
         await txn.rawUpdate(
-            'UPDATE ${DbHelper.dailySummaryTable} SET  ${DbHelper
-                .finalShutdownCol} = ?, ${DbHelper
-                .durationInMinsCol} = ? WHERE ${DbHelper.dateCol} = ?',
+            'UPDATE '
+                '${DbHelper.dailySummaryTable} SET  ${DbHelper
+                .finalShutdownCol} = ?, ${DbHelper.durationInMinsCol} = ?'
+                ' WHERE ${DbHelper.dateCol} = ?',
             [
               '$endTime',
               oldDurationInMins + currentDuration.inMinutes,
@@ -567,8 +837,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: currentPowerState !=
-                                        PowerState.Big_Gen
+                                    color:
+                                    currentPowerState != PowerState.Big_Gen
                                         ? Colors.grey
                                         : Colors.green)),
                           ),
@@ -586,8 +856,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: currentPowerState !=
-                                        PowerState.No_Light
+                                    color:
+                                    currentPowerState != PowerState.No_Light
                                         ? Colors.grey
                                         : Colors.red)),
                           ),

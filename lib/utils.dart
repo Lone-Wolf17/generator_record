@@ -4,10 +4,19 @@
 
 // TODO :: Ability to manually add time
 
+// TODO :: Handle when currentDate is Before Start Date
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 enum PowerState { No_Light, Nepa, Small_Gen, Big_Gen, Unknown }
+
+extension DateOnlyCompare on DateTime {
+  bool isSameDate(DateTime other) {
+    return this.year == other.year &&
+        this.month == other.month &&
+        this.day == other.day;
+  }
+}
 
 String formatIntoDateString(DateTime dateTime) {
   return DateFormat('dd-MMM-yy').format(dateTime);

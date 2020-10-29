@@ -7,15 +7,16 @@ class DbHelper {
 
   DbHelper._createInstance(); // Named CONST To Create Instance of the DbHelper
 
-  static final String DB_NAME = "gen_records.db";
+  static final String dbName = "power_records.db";
 
-  static final String mainRecordTable = "main_gen_record";
+  static final String mainRecordTable = "main_record";
   static final String idCol = "id";
   static final String startDateCol = "startDate";
   static final String startTimeCol = "startTime";
   static final String endDateCol = "endDate";
   static final String endTimeCol = "endTime";
   static final String startDateTimeCol = "startDateTime";
+  static final String powerSourceCol = "powerSource";
   static final String endDateTimeCol = "endDateTime";
   static final String durationInMinsCol = "duration_in_mins";
 
@@ -45,7 +46,7 @@ class DbHelper {
     //GET THE PATH TO THE DIRECTORY FOR IOS AND ANDROID TO STORE DB
     // Get a location using getDatabasesPath
     var databasesPath = await getDatabasesPath();
-    String path = join(databasesPath, DbHelper.DB_NAME);
+    String path = join(databasesPath, DbHelper.dbName);
 
     // OPEN / CREATE THE DB AT GIVEN PATH
 
@@ -56,9 +57,25 @@ class DbHelper {
 
   void _createDB(Database db, int newVersion) async {
     // When creating the db, create the tables
-    await db.execute(
-        'CREATE TABLE $mainRecordTable ($idCol INTEGER PRIMARY KEY, $startDateCol TEXT NOT NULL, $startTimeCol TEXT NOT NULL, $endTimeCol TEXT, $endDateCol TEXT,  $startDateTimeCol TEXT UNIQUE NOT NULL, ${DbHelper.endDateTimeCol} TEXT UNIQUE, $durationInMinsCol INTEGER)');
-    await db.execute(
-        'CREATE TABLE $dailySummaryTable ($idCol INTEGER PRIMARY KEY, $dateCol TEXT UNIQUE NOT NULL, $initialStartCol TEXT NOT NULL, $finalShutdownCol TEXT, $durationInMinsCol INTEGER DEFAULT 0, $dateTimeCol TEXT NOT NULL)');
+    await db.execute('CREATE TABLE $mainRecordTable ('
+        ' $idCol INTEGER PRIMARY KEY,'
+        ' $powerSourceCol TEXT NOT NULL,'
+        ' $startDateCol TEXT NOT NULL,'
+        ' $startTimeCol TEXT NOT NULL,'
+        ' $endTimeCol TEXT,'
+        ' $endDateCol TEXT,'
+        ' $startDateTimeCol TEXT UNIQUE NOT NULL,'
+        ' $endDateTimeCol TEXT UNIQUE,'
+        ' $durationInMinsCol INTEGER,)');
+
+    await db.execute('CREATE TABLE $dailySummaryTable ('
+        ' $idCol INTEGER PRIMARY KEY,'
+        ' $powerSourceCol TEXT NOT NULL'
+        ' $dateCol TEXT UNIQUE NOT NULL,'
+        ' $initialStartCol TEXT NOT NULL,'
+        ' $finalShutdownCol TEXT,'
+        ' $durationInMinsCol INTEGER DEFAULT 0,'
+        ' $dateTimeCol TEXT NOT NULL,'
+        ' UNIQUE ($powerSourceCol, $dateTimeCol))');
   }
 }
