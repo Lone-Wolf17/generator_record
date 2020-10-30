@@ -24,7 +24,7 @@ class DaysPage extends StatelessWidget {
     }
 
     String queryString =
-        "SELECT * FROM ${DbHelper.dailySummaryTable} SUM(${DbHelper.durationInMinsCol}) $whereClause GROUP BY ${DbHelper.dateCol} ORDER BY ${DbHelper.dateTimeCol} DESC";
+        "SELECT * FROM ${DbHelper.dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
 
     print(queryString);
 

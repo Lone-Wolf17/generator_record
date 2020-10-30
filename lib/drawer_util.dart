@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:generator_record/months_page.dart';
+import 'package:generator_record/records_page.dart';
+import 'package:generator_record/utils.dart';
 
 import 'days_page.dart';
 
@@ -21,8 +23,9 @@ class DrawerUtil extends StatelessWidget {
               color: Theme.of(context).primaryColor,
             ),
             onTap: () {
-              Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => DaysPage()));
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) =>
+                      RecordsPage(calendarView: CalendarView.Daily)));
             },
           ),
           Divider(height: 3),
@@ -34,7 +37,8 @@ class DrawerUtil extends StatelessWidget {
             ),
             onTap: () {
               Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => MonthsPage()));
+                  .push(MaterialPageRoute(builder: (_) =>
+                  RecordsPage(calendarView: CalendarView.Monthly)));
             },
           ),
           Divider(height: 3),

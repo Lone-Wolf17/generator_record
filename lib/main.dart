@@ -51,12 +51,6 @@ class _MyHomePageState extends State<MyHomePage> {
     PowerState.Big_Gen: "Big Gen is Currently ON"
   };
 
-  Map<PowerState, String> powerSourceMap = {
-    PowerState.No_Light: "No Light",
-    PowerState.Nepa: "Nepa",
-    PowerState.Small_Gen: "Small Gen",
-    PowerState.Big_Gen: "Big Gen"
-  };
 
   Map<PowerState, int> sliderStartMap = {
     PowerState.Unknown: 50,
@@ -96,18 +90,24 @@ class _MyHomePageState extends State<MyHomePage> {
   _setUpPersistence() async {
     prefs = await SharedPreferences.getInstance();
 
+    PowerState savedPowerState;
+
     if (!prefs.containsKey(powerState)) {
       prefs.setBool(genState, false);
       prefs.setString(
           powerState, EnumToString.convertToString(PowerState.No_Light));
+      savedPowerState = PowerState
+          .No_Light; // On First App Run, We Assume there is power supply
     } else {
       isGenOn = prefs.getBool(genState);
-      PowerState savedPowerState = EnumToString.fromString<PowerState>(
+
+      savedPowerState = EnumToString.fromString<PowerState>(
           PowerState.values, prefs.getString(powerState));
-      currentPowerState = savedPowerState;
-      forceRebuild = ValueKey(savedPowerState);
-      heading = powerStateMap[currentPowerState];
     }
+
+    currentPowerState = savedPowerState;
+    forceRebuild = ValueKey(savedPowerState);
+    heading = powerStateMap[savedPowerState];
 
     if (!prefs.containsKey(firstDate)) {
       // if this is the first run of app
@@ -236,9 +236,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _startState(
         Transaction txn, PowerState state, DateTime currentDateTime) async {
-
       String startDateStr = formatIntoDateString(currentDateTime);
-      String startTimeStr = formatIntoDateString(currentDateTime);
+      String startTimeStr = formatIntoTimeString(currentDateTime);
       String stateStr = EnumToString.convertToString(state);
 
       int id1 = await txn.rawInsert(
@@ -418,17 +417,17 @@ class _MyHomePageState extends State<MyHomePage> {
           String queryStr =
               "SELECT ${DbHelper.dateCol} FROM ${DbHelper.dailySummaryTable}"
               " WHERE ${DbHelper.dateCol} ='$newStartDateSTr'"
-              " AND ${DbHelper.powerSourceCol} = $stateStr";
+              " AND ${DbHelper.powerSourceCol} = '$stateStr'";
 
           var result = await txn.rawQuery(queryStr);
 
           if (result.isEmpty) {
             txn.rawInsert(
                 'INSERT INTO ${DbHelper.dailySummaryTable} ( '
-                ' ${DbHelper.dateCol},'
-                ' ${DbHelper.initialStartCol},'
-                ' ${DbHelper.finalShutdownCol},'
-                ' ${DbHelper.durationInMinsCol},'
+                    ' ${DbHelper.dateCol},'
+                    ' ${DbHelper.initialStartCol},'
+                    ' ${DbHelper.finalShutdownCol},'
+                    ' ${DbHelper.durationInMinsCol},'
                 ' ${DbHelper.dateTimeCol}, '
                 ' ${DbHelper.powerSourceCol}'
                 ') VALUES(?, ?, ?, ?, ?, ?)',
@@ -476,7 +475,7 @@ class _MyHomePageState extends State<MyHomePage> {
               '$endDateStr',
               '00:00',
               '$endTimeStr',
-              (durationFromMidnight),
+              (durationFromMidnight.inMinutes),
               currentDate.toIso8601String(),
               stateStr
             ]);

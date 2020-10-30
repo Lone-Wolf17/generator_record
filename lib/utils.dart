@@ -10,6 +10,15 @@ import 'package:intl/intl.dart';
 
 enum PowerState { No_Light, Nepa, Small_Gen, Big_Gen, Unknown }
 
+enum CalendarView { Monthly, Daily }
+
+Map<PowerState, String> powerSourceMap = {
+  PowerState.No_Light: "No Light",
+  PowerState.Nepa: "Nepa",
+  PowerState.Small_Gen: "Small Gen",
+  PowerState.Big_Gen: "Big Gen"
+};
+
 extension DateOnlyCompare on DateTime {
   bool isSameDate(DateTime other) {
     return this.year == other.year &&
@@ -31,9 +40,17 @@ String durationInHoursAndMins(Duration duration) {
 
   if (duration.inHours != 0) {
     int remainingMins = duration.inMinutes - (duration.inHours * 60);
-    durationStr += "${duration.inHours} Hrs $remainingMins Mins";
-  } else {
+    durationStr += "${duration.inHours}"
+        " Hrs ";
+    duration = Duration(minutes: remainingMins);
+  }
+
+  if (duration.inMinutes != 0) {
     durationStr += "${duration.inMinutes} Mins";
+  }
+
+  if (durationStr.isEmpty) {
+    durationStr = "No Data";
   }
 
   return durationStr;
