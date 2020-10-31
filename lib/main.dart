@@ -83,8 +83,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     // TODO: implement initState
-    _setUpPersistence();
     super.initState();
+    _setUpPersistence();
   }
 
   _setUpPersistence() async {
@@ -105,9 +105,11 @@ class _MyHomePageState extends State<MyHomePage> {
           PowerState.values, prefs.getString(powerState));
     }
 
-    currentPowerState = savedPowerState;
-    forceRebuild = ValueKey(savedPowerState);
-    heading = powerStateMap[savedPowerState];
+    _updateUI(savedPowerState);
+
+    // currentPowerState = savedPowerState;
+    // forceRebuild = ValueKey(savedPowerState);
+    // heading = powerStateMap[savedPowerState];
 
     if (!prefs.containsKey(firstDate)) {
       // if this is the first run of app

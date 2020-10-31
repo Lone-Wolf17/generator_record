@@ -144,11 +144,11 @@ class SingleDayRecordPage extends StatelessWidget {
     // open the database
     Database database = await DbHelper().database;
 
+    print("DateStr: $dateStr");
+
     // Get the records
     List<Map> dateRecords = await database.rawQuery(
-        "SELECT * FROM ${DbHelper.mainRecordTable} WHERE ${DbHelper
-            .startDateCol} = '$dateStr' ORDER BY '${DbHelper
-            .startTimeCol}' ASC");
+        "SELECT * FROM ${DbHelper.mainRecordTable} WHERE ${DbHelper.startDateCol} = '$dateStr' ORDER BY '${DbHelper.startTimeCol}' ASC");
 
     return dateRecords;
   }

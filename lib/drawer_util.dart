@@ -18,11 +18,9 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
                 title: Text(
                   "Records By Date",
-                  style: TextStyle(color: Theme.of(context).primaryColor),
                 ),
                 trailing: Icon(
                   Icons.date_range_rounded,
-                  color: Theme.of(context).primaryColor,
                 )),
           ),
           Padding(
@@ -54,11 +52,9 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text(
                 "Records By Power Source",
-                style: TextStyle(color: Theme.of(context).primaryColor),
               ),
               trailing: Icon(
                 Icons.flash_on_outlined,
-                color: Theme.of(context).primaryColor,
               ),
             ),
           ),

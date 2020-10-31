@@ -116,12 +116,15 @@ class _RecordsPageState extends State<RecordsPage> {
   _buildSummaryCard(String dateOrMonth, Map<PowerState, int> durationMap) {
     return InkWell(
       onTap: () {
+        print("Power Source: $powerSource");
+        print("dateOrMonth: $dateOrMonth");
+
         if (calendarView == CalendarView.Monthly) {
-          print(powerSource);
+          print("Power Source: $powerSource");
+          print("dateOrMonth: $dateOrMonth");
 
           Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) =>
-                  RecordsPage(
+              builder: (context) => RecordsPage(
                     calendarView: CalendarView.Daily,
                     powerSource: powerSource,
                     whereParams: dateOrMonth,
