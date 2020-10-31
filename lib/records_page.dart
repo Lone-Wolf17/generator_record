@@ -10,36 +10,59 @@ import 'package:sqflite/sqflite.dart';
 import 'days_page.dart';
 
 class RecordsPage extends StatefulWidget {
+  final String whereParams; // This is optional
   final CalendarView calendarView;
+  final PowerState powerSource;
 
-  RecordsPage({@required this.calendarView});
+  RecordsPage(
+      {this.calendarView = CalendarView.Daily,
+      this.powerSource = PowerState.Unknown,
+      this.whereParams});
 
   @override
-  _RecordsPageState createState() =>
-      _RecordsPageState(calendarView: calendarView);
+  _RecordsPageState createState() => _RecordsPageState(
+      calendarView: calendarView,
+      whereParams: whereParams,
+      powerSource: powerSource);
 }
 
 class _RecordsPageState extends State<RecordsPage> {
+
+  _RecordsPageState(
+      {this.calendarView = CalendarView.Daily, this.powerSource = PowerState
+          .Unknown, this.whereParams});
+
+  final String whereParams; // This is optional
+  PowerState powerSource;
+  CalendarView calendarView;
+
   Future<List<Map>> _readDB() async {
     // open the database
     Database database = await DbHelper().database;
 
+    String whereClause = "";
+
+    // add where clause only if where Params is available
+    if (whereParams != null) {
+      List split = whereParams.split('-20');
+      String querableStr = split[0] + "-" + split[1];
+      whereClause = "WHERE ${DbHelper.dateCol} LIKE '%$querableStr'";
+    }
+
+    String queryStr = "SELECT * FROM ${DbHelper
+        .dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
+
     // Get the records
     List<Map> daysList = await database.rawQuery(
-        "SELECT * FROM ${DbHelper.dailySummaryTable} ORDER BY ${DbHelper.dateTimeCol} DESC");
+        queryStr);
 
     return daysList;
   }
 
-  _RecordsPageState({@required this.calendarView});
-
-  PowerState _powerSource;
-  CalendarView calendarView;
-
   LinkedHashMap<String, Map<PowerState, int>> _buildForDays(
       AsyncSnapshot<List<Map>> snapshot) {
     LinkedHashMap<String, Map<PowerState, int>> map =
-        LinkedHashMap<String, LinkedHashMap<PowerState, int>>();
+    LinkedHashMap<String, LinkedHashMap<PowerState, int>>();
 
     snapshot.data.forEach((element) {
       String date = element[DbHelper.dateCol];
@@ -93,10 +116,23 @@ class _RecordsPageState extends State<RecordsPage> {
   _buildSummaryCard(String dateOrMonth, Map<PowerState, int> durationMap) {
     return InkWell(
       onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => DaysPage(
-                  whereParams: dateOrMonth,
-                )));
+        if (calendarView == CalendarView.Monthly) {
+          print(powerSource);
+
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) =>
+                  RecordsPage(
+                    calendarView: CalendarView.Daily,
+                    powerSource: powerSource,
+                    whereParams: dateOrMonth,
+                  )));
+        } else if (calendarView == CalendarView.Daily) {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) =>
+                  SingleDayRecordPage(
+                    dateStr: dateOrMonth,
+                  )));
+        }
       },
       child: Card(
         child: Padding(
@@ -110,63 +146,69 @@ class _RecordsPageState extends State<RecordsPage> {
                       fontSize: 20,
                       color: Colors.primaries[
                           Random().nextInt(Colors.primaries.length)])),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "${powerSourceMap[PowerState.Nepa]}: ",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              if (powerSource == PowerState.Nepa ||
+                  powerSource == PowerState.Unknown)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "${powerSourceMap[PowerState.Nepa]}: ",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Nepa]))}",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Nepa]))}",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "${powerSourceMap[PowerState.Small_Gen]}: ",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ],
+                ),
+              if (powerSource == PowerState.Small_Gen ||
+                  powerSource == PowerState.Unknown)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "${powerSourceMap[PowerState.Small_Gen]}: ",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Small_Gen]))}",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Small_Gen]))}",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "${powerSourceMap[PowerState.Big_Gen]}: ",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ],
+                ),
+              if (powerSource == PowerState.Big_Gen ||
+                  powerSource == PowerState.Unknown)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "${powerSourceMap[PowerState.Big_Gen]}: ",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Big_Gen]))}",
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "${durationInHoursAndMins(Duration(minutes: durationMap[PowerState.Big_Gen]))}",
+                        style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -179,11 +221,15 @@ class _RecordsPageState extends State<RecordsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Records Page'),
+        actions: [
+          buildHomeButton(context)
+        ],
       ),
       body: FutureBuilder<List<Map>>(
         future: _readDB(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
+
             if (snapshot.data.isEmpty) {
               return Center(
                 child: Text("No Record Found in Database!!!"),
@@ -208,7 +254,94 @@ class _RecordsPageState extends State<RecordsPage> {
 
             return Column(
               children: [
+                // Card for Power Source Selection
                 Card(
+                  margin: const EdgeInsets.all(6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              powerSource = PowerState.Unknown;
+                            });
+                          },
+                          child: Container(
+                              decoration: BoxDecoration(
+                                  color: powerSource == PowerState.Unknown
+                                      ? Colors.green
+                                      : Colors.grey,
+                                  borderRadius:
+                                  BorderRadius.all(Radius.circular(20))),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: Text("All"),
+                              )),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              powerSource = PowerState.Nepa;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                                color: powerSource == PowerState.Nepa
+                                    ? Colors.green
+                                    : Colors.grey,
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(20))),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: Text("Nepa"),
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              powerSource = PowerState.Big_Gen;
+                            });
+                          },
+                          child: Container(
+                              decoration: BoxDecoration(
+                                  color: powerSource == PowerState.Big_Gen
+                                      ? Colors.green
+                                      : Colors.grey,
+                                  borderRadius:
+                                  BorderRadius.all(Radius.circular(20))),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: Text("Big Gen"),
+                              )),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              powerSource = PowerState.Small_Gen;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                                color: powerSource == PowerState.Small_Gen
+                                    ? Colors.green
+                                    : Colors.grey,
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(20))),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: Text("Small Gen"),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Card for Calendar View Selection
+                if (whereParams == null) Card(
                   margin: const EdgeInsets.all(6),
                   child: Padding(
                     padding: const EdgeInsets.all(6),
@@ -227,7 +360,7 @@ class _RecordsPageState extends State<RecordsPage> {
                                       ? Colors.green
                                       : Colors.grey,
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(20))),
+                                  BorderRadius.all(Radius.circular(20))),
                               child: Padding(
                                 padding: const EdgeInsets.all(6.0),
                                 child: Text("Daily"),
@@ -245,7 +378,7 @@ class _RecordsPageState extends State<RecordsPage> {
                                     ? Colors.green
                                     : Colors.grey,
                                 borderRadius:
-                                    BorderRadius.all(Radius.circular(20))),
+                                BorderRadius.all(Radius.circular(20))),
                             child: Padding(
                               padding: const EdgeInsets.all(6.0),
                               child: Text("Monthly"),
