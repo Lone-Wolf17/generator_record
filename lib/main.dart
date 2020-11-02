@@ -319,28 +319,6 @@ class _MyHomePageState extends State<MyHomePage> {
       print("Duration in minutes: ${currentDuration.inMinutes}");
       print("Duration in hours: ${currentDuration.inHours}");
 
-      // Update the main Records Table
-      int id1 = await txn.rawUpdate(
-          'UPDATE ${DbHelper.mainRecordTable}'
-          ' SET ${DbHelper.endDateCol} = ?,'
-          ' ${DbHelper.endTimeCol} = ?,'
-          ' ${DbHelper.endDateTimeCol} = ?,'
-          ' ${DbHelper.durationInMinsCol} = ? '
-          ' WHERE ${DbHelper.startDateTimeCol} = ?'
-          ' AND ${DbHelper.powerSourceCol} = ?',
-          [
-            '$endDateStr',
-            '$endTimeStr',
-            "${currentDateTime.toIso8601String()}",
-            currentDuration.inMinutes,
-            '$startTimeStr',
-            '$stateStr'
-          ]).then((value) {
-
-        print('Main Records Table: $stateStr switched off');
-        return value;
-
-      });
 
       /* Updating the Daily Records Table isn't as straight forward as the main records table
         We have to check that if the Power state is being changed the same day it was set
@@ -374,6 +352,27 @@ class _MyHomePageState extends State<MyHomePage> {
               stateStr
             ] // Since same date, endDate is equal to start date
             );
+
+        // Update the main Records Table
+        int id1 = await txn.rawUpdate(
+            'UPDATE ${DbHelper.mainRecordTable}'
+            ' SET ${DbHelper.endDateCol} = ?,'
+            ' ${DbHelper.endTimeCol} = ?,'
+            ' ${DbHelper.endDateTimeCol} = ?,'
+            ' ${DbHelper.durationInMinsCol} = ? '
+            ' WHERE ${DbHelper.startDateTimeCol} = ?'
+            ' AND ${DbHelper.powerSourceCol} = ?',
+            [
+              '$endDateStr',
+              '$endTimeStr',
+              "${currentDateTime.toIso8601String()}",
+              currentDuration.inMinutes,
+              '$startTimeStr',
+              '$stateStr'
+            ]).then((value) {
+          print('Main Records Table: $stateStr switched off');
+          return value;
+        });
       } else {
 
         // Gen may have been switch on over the night.
@@ -399,6 +398,28 @@ class _MyHomePageState extends State<MyHomePage> {
               '$stateStr'
             ]);
 
+        DateTime newEndDateTime = DateTime(
+            startTime.year, startTime.month, startTime.day, 23, 59);
+
+        // Update the main Records Table
+
+        int id2 = await txn.rawUpdate(
+            'UPDATE ${DbHelper.mainRecordTable}'
+                ' SET ${DbHelper.endDateCol} = ?,'
+                ' ${DbHelper.endTimeCol} = ?,'
+                ' ${DbHelper.endDateTimeCol} = ?,'
+                ' ${DbHelper.durationInMinsCol} = ? '
+                ' WHERE ${DbHelper.startDateTimeCol} = ?'
+                ' AND ${DbHelper.powerSourceCol} = ?',
+            [
+              '$startDateStr',
+              '23:59',
+              "${newEndDateTime.toIso8601String()}",
+              firstDayDurationInMins,
+              '$startTimeStr',
+              '$stateStr'
+            ]);
+
         // Add a duration of 1 day shift start date by 1 day
         DateTime newStartDate = startTime.add(Duration(days: 1));
 
@@ -411,6 +432,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // also check that the current date is not before the start date. That is an error
         while (!currentDateTime.isSameDate(newStartDate) &&
             currentDateTime.isAfter(newStartDate)) {
+
           String newStartDateSTr = formatIntoDateString(newStartDate);
 
           // check if a row exist for newDate in Daily Records Table
@@ -431,8 +453,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ' ${DbHelper.finalShutdownCol},'
                     ' ${DbHelper.durationInMinsCol},'
                 ' ${DbHelper.dateTimeCol}, '
-                ' ${DbHelper.powerSourceCol}'
-                ') VALUES(?, ?, ?, ?, ?, ?)',
+                    ' ${DbHelper.powerSourceCol}'
+                    ') VALUES(?, ?, ?, ?, ?, ?)',
                 [
                   '$newStartDateSTr',
                   '00:00',
@@ -440,6 +462,34 @@ class _MyHomePageState extends State<MyHomePage> {
                   1440,
                   newStartDate.toIso8601String(),
                   stateStr
+                ]);
+
+            DateTime newEndDateTime = DateTime(
+                newStartDate.year, newStartDate.month, newStartDate.day, 23,
+                59);
+
+            // Insert into the main Records Table
+
+            int id1 = await txn.rawInsert(
+                'INSERT INTO ${DbHelper.mainRecordTable} ('
+                    ' ${DbHelper.startDateCol},'
+                    ' ${DbHelper.startTimeCol},'
+                    ' ${DbHelper.startDateTimeCol},'
+                    ' ${DbHelper.endDateCol},'
+                    ' ${DbHelper.endTimeCol},'
+                    ' ${DbHelper.endDateTimeCol},'
+                    ' ${DbHelper.durationInMinsCol},'
+                    ' ${DbHelper.powerSourceCol}) '
+                    'VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                  "$newStartDateSTr",
+                  "00:00",
+                  "${newStartDate.toIso8601String()}",
+                  '$newStartDateSTr', // end date is the same as start date
+                  "23:59",
+                  '${newEndDateTime.toIso8601String()}',
+                  1440,
+                  "$stateStr"
                 ]);
           }
 
@@ -464,15 +514,15 @@ class _MyHomePageState extends State<MyHomePage> {
             currentDateTime.year, currentDateTime.month, currentDateTime.day);
         Duration durationFromMidnight = currentDateTime.difference(currentDate);
 
-        txn.rawInsert(
+        await txn.rawInsert(
             'INSERT INTO ${DbHelper.dailySummaryTable} ( '
-            '${DbHelper.dateCol},'
-            ' ${DbHelper.initialStartCol},'
-            ' ${DbHelper.finalShutdownCol},'
-            ' ${DbHelper.durationInMinsCol},'
-            ' ${DbHelper.dateTimeCol},'
-            ' ${DbHelper.powerSourceCol}'
-            ') VALUES(?, ?, ?, ?, ?, ?)',
+                '${DbHelper.dateCol},'
+                ' ${DbHelper.initialStartCol},'
+                ' ${DbHelper.finalShutdownCol},'
+                ' ${DbHelper.durationInMinsCol},'
+                ' ${DbHelper.dateTimeCol},'
+                ' ${DbHelper.powerSourceCol}'
+                ') VALUES(?, ?, ?, ?, ?, ?)',
             [
               '$endDateStr',
               '00:00',
@@ -481,12 +531,33 @@ class _MyHomePageState extends State<MyHomePage> {
               currentDate.toIso8601String(),
               stateStr
             ]);
+
+        await txn.rawInsert(
+            'INSERT INTO ${DbHelper.mainRecordTable} ('
+                ' ${DbHelper.startDateCol},'
+                ' ${DbHelper.startTimeCol},'
+                ' ${DbHelper.startDateTimeCol},'
+                ' ${DbHelper.endDateCol},'
+                ' ${DbHelper.endTimeCol},'
+                ' ${DbHelper.endDateTimeCol},'
+                ' ${DbHelper.durationInMinsCol},'
+                ' ${DbHelper.powerSourceCol}) '
+                'VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              "$endDateStr",
+              "00:00",
+              "${currentDate.toIso8601String()}",
+              '$endDateStr', // end date is the same as start date
+              "$endTimeStr",
+              '${currentDateTime.toIso8601String()}',
+              (durationFromMidnight.inMinutes),
+              "$stateStr"
+            ]);
       }
     }
 
 
     DateTime currentDateTime = DateTime.now();
-    String startDateStr = formatIntoDateString(currentDateTime);
 
     await database.transaction((txn) async {
 

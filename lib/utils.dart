@@ -45,13 +45,8 @@ String durationInHoursAndMins(Duration duration) {
     duration = Duration(minutes: remainingMins);
   }
 
-  if (duration.inMinutes != 0) {
     durationStr += "${duration.inMinutes} Mins";
-  }
 
-  if (durationStr.isEmpty) {
-    durationStr = "No Data";
-  }
 
   return durationStr;
 }
@@ -68,3 +63,5 @@ Widget buildHomeButton(BuildContext context) {
         popUntilHomePage(context);
       });
 }
+
+
