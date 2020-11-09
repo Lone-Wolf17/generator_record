@@ -144,7 +144,8 @@ class SingleDayRecordPage extends StatefulWidget {
       {@required this.dateStr, this.powerSource = PowerState.Unknown});
 
   @override
-  _SingleDayRecordPageState createState() => _SingleDayRecordPageState();
+  _SingleDayRecordPageState createState() =>
+      _SingleDayRecordPageState(powerSource: powerSource);
 }
 
 class _SingleDayRecordPageState extends State<SingleDayRecordPage> {
@@ -168,36 +169,38 @@ class _SingleDayRecordPageState extends State<SingleDayRecordPage> {
   _buildRecordCard(Map powerRecord) {
     String durationStr = "";
 
-    /* If End Time || End Date || duration Colloum is null
+    /* If End Time || End Date || duration Cols is null
                               It most likely means that gen is still On for that record,
                               Hence no End Time, Date and Duration yet,
                               We therefore we provide a placeholder value, so
                               that null value is not used
                             */
 
-    if (powerRecord[DbHelper.durationInMinsCol] == null) {
+    //
+    // String shutdownDate = "";
+    //
+    // if (powerRecord[DbHelper.endDateCol] == null) {
+    //   shutdownDate = "Still ON";
+    // } else if (powerRecord[DbHelper.startDateCol] ==
+    //     powerRecord[DbHelper.endDateCol]) {
+    //   shutdownDate = "Same Day";
+    // } else {
+    //   shutdownDate = powerRecord[DbHelper.endDateCol];
+    // }
+
+    String endTimeStr = "";
+
+    if (powerRecord[DbHelper.endTimeCol] == null) {
+      endTimeStr = "Still On";
       durationStr = "Still ON";
     } else {
+      endTimeStr = powerRecord[DbHelper.endTimeCol];
+
       Duration duration =
           Duration(minutes: powerRecord[DbHelper.durationInMinsCol]);
 
       durationStr = durationInHoursAndMins(duration);
     }
-
-    String shutdownDate = "";
-
-    if (powerRecord[DbHelper.endDateCol] == null) {
-      shutdownDate = "Still ON";
-    } else if (powerRecord[DbHelper.startDateCol] ==
-        powerRecord[DbHelper.endDateCol]) {
-      shutdownDate = "Same Day";
-    } else {
-      shutdownDate = powerRecord[DbHelper.endDateCol];
-    }
-
-    String endTimeStr = powerRecord[DbHelper.endTimeCol] == null
-        ? "Still On"
-        : powerRecord[DbHelper.endTimeCol];
 
     String source = powerRecord[DbHelper.powerSourceCol];
 

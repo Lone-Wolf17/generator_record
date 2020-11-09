@@ -27,10 +27,10 @@ class RecordsPage extends StatefulWidget {
 }
 
 class _RecordsPageState extends State<RecordsPage> {
-
   _RecordsPageState(
-      {this.calendarView = CalendarView.Daily, this.powerSource = PowerState
-          .Unknown, this.whereParams});
+      {this.calendarView = CalendarView.Daily,
+      this.powerSource = PowerState.Unknown,
+      this.whereParams});
 
   final String whereParams; // This is optional
   PowerState powerSource;
@@ -49,12 +49,18 @@ class _RecordsPageState extends State<RecordsPage> {
       whereClause = "WHERE ${DbHelper.dateCol} LIKE '%$querableStr'";
     }
 
-    String queryStr = "SELECT * FROM ${DbHelper
-        .dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
+    String queryStr =
+        "SELECT ${DbHelper.startDateCol}, ${DbHelper.powerSourceCol},"
+        " SUM(${DbHelper.durationInMinsCol}) ${DbHelper.durationInMinsCol} "
+        " FROM ${DbHelper.mainRecordTable}"
+        " GROUP BY ${DbHelper.startDateCol}, ${DbHelper.powerSourceCol}"
+        " ORDER BY ${DbHelper.startDateTimeCol} DESC";
+
+    // "SELECT * FROM ${DbHelper
+    // .dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
 
     // Get the records
-    List<Map> daysList = await database.rawQuery(
-        queryStr);
+    List<Map> daysList = await database.rawQuery(queryStr);
 
     return daysList;
   }
@@ -65,7 +71,7 @@ class _RecordsPageState extends State<RecordsPage> {
     LinkedHashMap<String, LinkedHashMap<PowerState, int>>();
 
     snapshot.data.forEach((element) {
-      String date = element[DbHelper.dateCol];
+      String date = element[DbHelper.startDateCol];
       PowerState powerState = EnumToString.fromString(
           PowerState.values, element[DbHelper.powerSourceCol]);
 
@@ -91,7 +97,7 @@ class _RecordsPageState extends State<RecordsPage> {
         LinkedHashMap<String, LinkedHashMap<PowerState, int>>();
 
     snapshot.data.forEach((element) {
-      String date = element[DbHelper.dateCol];
+      String date = element[DbHelper.startDateCol];
       List dateSplit = date.split("-");
       String monthYear = dateSplit[1] + "-20" + dateSplit[2];
       PowerState powerState = EnumToString.fromString(
@@ -315,15 +321,12 @@ class _RecordsPageState extends State<RecordsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Records Page'),
-        actions: [
-          buildHomeButton(context)
-        ],
+        actions: [buildHomeButton(context)],
       ),
       body: FutureBuilder<List<Map>>(
         future: _readDB(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-
             if (snapshot.data.isEmpty) {
               return Center(
                 child: Text("No Record Found in Database!!!"),
@@ -351,54 +354,55 @@ class _RecordsPageState extends State<RecordsPage> {
                 // Card for Power Source Selection
                 powerSourceSelectionCard(),
                 // Card for Calendar View Selection
-                if (whereParams == null) Card(
-                  margin: const EdgeInsets.all(6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              calendarView = CalendarView.Daily;
-                            });
-                          },
-                          child: Container(
+                if (whereParams == null)
+                  Card(
+                    margin: const EdgeInsets.all(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                calendarView = CalendarView.Daily;
+                              });
+                            },
+                            child: Container(
+                                decoration: BoxDecoration(
+                                    color: calendarView == CalendarView.Daily
+                                        ? Colors.green
+                                        : Colors.grey,
+                                    borderRadius:
+                                    BorderRadius.all(Radius.circular(20))),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(6.0),
+                                  child: Text("Daily"),
+                                )),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                calendarView = CalendarView.Monthly;
+                              });
+                            },
+                            child: Container(
                               decoration: BoxDecoration(
-                                  color: calendarView == CalendarView.Daily
+                                  color: calendarView == CalendarView.Monthly
                                       ? Colors.green
                                       : Colors.grey,
                                   borderRadius:
                                   BorderRadius.all(Radius.circular(20))),
                               child: Padding(
                                 padding: const EdgeInsets.all(6.0),
-                                child: Text("Daily"),
-                              )),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              calendarView = CalendarView.Monthly;
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                                color: calendarView == CalendarView.Monthly
-                                    ? Colors.green
-                                    : Colors.grey,
-                                borderRadius:
-                                BorderRadius.all(Radius.circular(20))),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: Text("Monthly"),
+                                child: Text("Monthly"),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: ListView(
                     children: list,
