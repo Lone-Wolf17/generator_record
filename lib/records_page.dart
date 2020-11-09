@@ -42,25 +42,40 @@ class _RecordsPageState extends State<RecordsPage> {
 
     String whereClause = "";
 
-    // add where clause only if where Params is available
-    if (whereParams != null) {
-      List split = whereParams.split('-20');
-      String querableStr = split[0] + "-" + split[1];
-      whereClause = "WHERE ${DbHelper.dateCol} LIKE '%$querableStr'";
+    print("DB Called!!!!!");
+
+    if (powerSource != PowerState.Unknown || whereParams != null) {
+      whereClause = "WHERE ";
+
+      if (powerSource != PowerState.Unknown) {
+        String stateStr = EnumToString.convertToString(powerSource);
+        whereClause += " ${DbHelper.powerSourceCol} = '$stateStr' ";
+      }
+
+      if (powerSource != PowerState.Unknown && whereParams != null) {
+        whereClause += " AND ";
+      }
+
+      // add where clause only if where Params is available
+      if (whereParams != null) {
+        List split = whereParams.split('-20');
+        String querableStr = split[0] + "-" + split[1];
+        whereClause += " ${DbHelper.startDateCol} LIKE '%$querableStr'";
+      }
     }
 
     String queryStr =
         "SELECT ${DbHelper.startDateCol}, ${DbHelper.powerSourceCol},"
         " SUM(${DbHelper.durationInMinsCol}) ${DbHelper.durationInMinsCol} "
         " FROM ${DbHelper.mainRecordTable}"
+        " $whereClause"
         " GROUP BY ${DbHelper.startDateCol}, ${DbHelper.powerSourceCol}"
         " ORDER BY ${DbHelper.startDateTimeCol} DESC";
 
-    // "SELECT * FROM ${DbHelper
-    // .dailySummaryTable} $whereClause ORDER BY ${DbHelper.dateTimeCol} DESC";
-
     // Get the records
     List<Map> daysList = await database.rawQuery(queryStr);
+
+    print(daysList);
 
     return daysList;
   }

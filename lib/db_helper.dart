@@ -68,14 +68,5 @@ class DbHelper {
         ' $endDateTimeCol TEXT UNIQUE,'
         ' $durationInMinsCol INTEGER DEFAULT 0)');
 
-    // await db.execute('CREATE TABLE $dailySummaryTable ('
-    //     ' $idCol INTEGER PRIMARY KEY,'
-    //     ' $powerSourceCol TEXT NOT NULL,'
-    //     ' $dateCol TEXT NOT NULL,'
-    //     ' $initialStartCol TEXT NOT NULL,'
-    //     ' $finalShutdownCol TEXT,'
-    //     ' $durationInMinsCol INTEGER DEFAULT 0,'
-    //     ' $dateTimeCol TEXT NOT NULL,'
-    //     ' UNIQUE ($powerSourceCol, $dateTimeCol))');
   }
 }

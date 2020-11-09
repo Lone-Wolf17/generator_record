@@ -42,24 +42,23 @@ class DaysPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        actions: [
-          buildHomeButton(context)
-        ],
+        actions: [buildHomeButton(context)],
       ),
       body: FutureBuilder<List<Map>>(
         future: _readDB(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             if (snapshot.data.isEmpty) {
-              return Center(child: Text("No Record Found in Database!!!"),);
+              return Center(
+                child: Text("No Record Found in Database!!!"),
+              );
             }
 
             return ListView.builder(
                 itemCount: snapshot.data.length,
                 itemBuilder: (context, i) {
                   Duration duration = Duration(
-                      minutes: snapshot.data[i]
-                      [DbHelper.durationInMinsCol]);
+                      minutes: snapshot.data[i][DbHelper.durationInMinsCol]);
 
                   String durationStr = durationInHoursAndMins(duration);
 
@@ -70,9 +69,10 @@ class DaysPage extends StatelessWidget {
                   // cant think of another placeholder for this scenario right now.
                   // But i don't want it to display null
 
-                  String finalShutdown = snapshot.data[i][DbHelper
-                      .finalShutdownCol] == null ? "-- : --" : snapshot
-                      .data[i][DbHelper.finalShutdownCol];
+                  String finalShutdown =
+                      snapshot.data[i][DbHelper.finalShutdownCol] == null
+                          ? "-- : --"
+                          : snapshot.data[i][DbHelper.finalShutdownCol];
 
                   return InkWell(
                     onTap: () {
@@ -82,49 +82,47 @@ class DaysPage extends StatelessWidget {
                     },
                     child: Card(
                         child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                      child: Text(dateStr,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 20,
-                                              color: Colors.primaries[Random()
-                                                  .nextInt(
+                              Expanded(
+                                  child: Text(dateStr,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          color: Colors.primaries[Random()
+                                              .nextInt(
                                                   Colors.primaries.length)]))),
-                                  Expanded(
-                                      child: Text(
-                                        durationStr,
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold),
-                                      )),
-                                ],
+                              Expanded(
+                                  child: Text(
+                                durationStr,
+                                style: TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.bold),
+                              )),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                    "Initial Start: ${snapshot.data[i][DbHelper.initialStartCol]}"),
                               ),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                        "Initial Start: ${snapshot
-                                            .data[i][DbHelper
-                                            .initialStartCol]}"),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                        "Final Shutdown: $finalShutdown"),
-                                  ),
-                                ],
+                              Expanded(
+                                child: Text("Final Shutdown: $finalShutdown"),
                               ),
                             ],
                           ),
-                        )),
+                        ],
+                      ),
+                    )),
                   );
                 });
           } else if (snapshot.hasError) {
-            Center(child: Text("Error:: ${snapshot.error}"),);
+            Center(
+              child: Text("Error:: ${snapshot.error}"),
+            );
           }
 
           return Center(
@@ -159,9 +157,26 @@ class _SingleDayRecordPageState extends State<SingleDayRecordPage> {
 
     print("DateStr: ${widget.dateStr}");
 
+    String powerSourceWhere = "";
+
+    if (powerSource != PowerState.Unknown) {
+      String stateStr = EnumToString.convertToString(powerSource);
+      powerSourceWhere =
+      " AND ${DbHelper.powerSourceCol} = '$stateStr' ";
+    }
+
+    String queryStr =
+        "SELECT ${DbHelper.powerSourceCol}, ${DbHelper.durationInMinsCol},"
+        " ${DbHelper.startTimeCol}, ${DbHelper.endTimeCol}"
+        " FROM ${DbHelper.mainRecordTable} WHERE ${DbHelper
+        .startDateCol} = '${widget
+        .dateStr}' $powerSourceWhere ORDER BY ${DbHelper
+        .startDateTimeCol} DESC";
+
     // Get the records
-    List<Map> dateRecords = await database.rawQuery(
-        "SELECT * FROM ${DbHelper.mainRecordTable} WHERE ${DbHelper.startDateCol} = '${widget.dateStr}' ORDER BY '${DbHelper.startTimeCol}' ASC");
+    List<Map> dateRecords = await database.rawQuery(queryStr);
+
+    print(dateRecords);
 
     return dateRecords;
   }
@@ -170,23 +185,11 @@ class _SingleDayRecordPageState extends State<SingleDayRecordPage> {
     String durationStr = "";
 
     /* If End Time || End Date || duration Cols is null
-                              It most likely means that gen is still On for that record,
-                              Hence no End Time, Date and Duration yet,
-                              We therefore we provide a placeholder value, so
-                              that null value is not used
-                            */
-
-    //
-    // String shutdownDate = "";
-    //
-    // if (powerRecord[DbHelper.endDateCol] == null) {
-    //   shutdownDate = "Still ON";
-    // } else if (powerRecord[DbHelper.startDateCol] ==
-    //     powerRecord[DbHelper.endDateCol]) {
-    //   shutdownDate = "Same Day";
-    // } else {
-    //   shutdownDate = powerRecord[DbHelper.endDateCol];
-    // }
+        It most likely means that gen is still On for that record,
+        Hence no End Time, Date and Duration yet,
+        We therefore we provide a placeholder value, so
+        that null value is not used
+    */
 
     String endTimeStr = "";
 
