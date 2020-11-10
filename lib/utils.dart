@@ -45,8 +45,15 @@ String durationInHoursAndMins(Duration duration) {
     duration = Duration(minutes: remainingMins);
   }
 
+  if (duration.inMinutes == 0 && durationStr.isNotEmpty) {
+    // Add nothing
+  } else if (duration.inMinutes == 0) {
+    if (durationStr.isEmpty) {
+      durationStr += "${duration.inMinutes} Mins";
+    }
+  } else {
     durationStr += "${duration.inMinutes} Mins";
-
+  }
 
   return durationStr;
 }

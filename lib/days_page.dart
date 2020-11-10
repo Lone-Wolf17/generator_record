@@ -176,8 +176,6 @@ class _SingleDayRecordPageState extends State<SingleDayRecordPage> {
     // Get the records
     List<Map> dateRecords = await database.rawQuery(queryStr);
 
-    print(dateRecords);
-
     return dateRecords;
   }
 

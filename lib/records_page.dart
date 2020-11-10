@@ -75,8 +75,6 @@ class _RecordsPageState extends State<RecordsPage> {
     // Get the records
     List<Map> daysList = await database.rawQuery(queryStr);
 
-    print(daysList);
-
     return daysList;
   }
 
@@ -338,99 +336,100 @@ class _RecordsPageState extends State<RecordsPage> {
         title: Text('Records Page'),
         actions: [buildHomeButton(context)],
       ),
-      body: FutureBuilder<List<Map>>(
-        future: _readDB(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            if (snapshot.data.isEmpty) {
-              return Center(
-                child: Text("No Record Found in Database!!!"),
-              );
-            }
-
-            LinkedHashMap<String, Map<PowerState, int>> map;
-
-            if (calendarView == CalendarView.Monthly) {
-              map = _buildForMonths(snapshot);
-            } else if (calendarView == CalendarView.Daily) {
-              map = _buildForDays(snapshot);
-            }
-
-            List<Widget> list = List();
-
-            map.forEach((dateOrMonth, durationMap) {
-              // Duration duration = Duration(minutes: value);
-
-              list.add(_buildSummaryCard(dateOrMonth, durationMap));
-            });
-
-            return Column(
-              children: [
-                // Card for Power Source Selection
-                powerSourceSelectionCard(),
-                // Card for Calendar View Selection
-                if (whereParams == null)
-                  Card(
-                    margin: const EdgeInsets.all(6),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                calendarView = CalendarView.Daily;
-                              });
-                            },
-                            child: Container(
-                                decoration: BoxDecoration(
-                                    color: calendarView == CalendarView.Daily
-                                        ? Colors.green
-                                        : Colors.grey,
-                                    borderRadius:
-                                    BorderRadius.all(Radius.circular(20))),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(6.0),
-                                  child: Text("Daily"),
-                                )),
-                          ),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                calendarView = CalendarView.Monthly;
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: calendarView == CalendarView.Monthly
-                                      ? Colors.green
-                                      : Colors.grey,
-                                  borderRadius:
+      body: Column(
+        children: [
+          // Card for Power Source Selection
+          powerSourceSelectionCard(),
+          // Card for Calendar View Selection
+          if (whereParams == null)
+            Card(
+              margin: const EdgeInsets.all(6),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          calendarView = CalendarView.Daily;
+                        });
+                      },
+                      child: Container(
+                          decoration: BoxDecoration(
+                              color: calendarView == CalendarView.Daily
+                                  ? Colors.green
+                                  : Colors.grey,
+                              borderRadius:
                                   BorderRadius.all(Radius.circular(20))),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6.0),
-                                child: Text("Monthly"),
-                              ),
-                            ),
-                          ),
-                        ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Text("Daily"),
+                          )),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          calendarView = CalendarView.Monthly;
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: calendarView == CalendarView.Monthly
+                                ? Colors.green
+                                : Colors.grey,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(20))),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6.0),
+                          child: Text("Monthly"),
+                        ),
                       ),
                     ),
-                  ),
-                Expanded(
-                  child: ListView(
-                    children: list,
-                  ),
+                  ],
                 ),
-              ],
-            );
-          }
+              ),
+            ),
+          Expanded(
+            child: FutureBuilder<List<Map>>(
+              future: _readDB(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  if (snapshot.data.isEmpty) {
+                    return Center(
+                      child: Text(
+                          "No Records found in Database for this Power Source !!"),
+                    );
+                  }
 
-          return Center(
-            child: CircularProgressIndicator(),
-          );
-        },
+                  LinkedHashMap<String, Map<PowerState, int>> map;
+
+                  if (calendarView == CalendarView.Monthly) {
+                    map = _buildForMonths(snapshot);
+                  } else if (calendarView == CalendarView.Daily) {
+                    map = _buildForDays(snapshot);
+                  }
+
+                  List<Widget> list = List();
+
+                  map.forEach((dateOrMonth, durationMap) {
+                    // Duration duration = Duration(minutes: value);
+
+                    list.add(_buildSummaryCard(dateOrMonth, durationMap));
+                  });
+
+                  return ListView(
+                    children: list,
+                  );
+                }
+
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
