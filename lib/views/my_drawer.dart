@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:generator_record/records_page.dart';
-import 'package:generator_record/utils.dart';
+import 'package:generator_record/constants/enums.dart';
+import 'package:generator_record/models/records_filter.dart';
+import 'package:generator_record/views/records_page.dart';
+import 'package:provider/provider.dart';
 
 class DrawerUtil extends StatelessWidget {
   @override
@@ -28,9 +30,11 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text('Daily'),
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) =>
-                        RecordsPage(calendarView: CalendarView.Daily)));
+                Provider.of<RecordsFilter>(context, listen: false)
+                    .changeCalenderTypeFilter(CalendarView.Daily);
+
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RecordsPage()));
               },
             ),
           ),
@@ -40,9 +44,10 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text('Monthly'),
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) =>
-                        RecordsPage(calendarView: CalendarView.Monthly)));
+                Provider.of<RecordsFilter>(context, listen: false)
+                    .changeCalenderTypeFilter(CalendarView.Monthly);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RecordsPage()));
               },
             ),
           ),
@@ -63,10 +68,10 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text('Small Gen'),
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => RecordsPage(
-                          powerSource: PowerState.Small_Gen,
-                        )));
+                Provider.of<RecordsFilter>(context, listen: false)
+                    .changePowerSourceFilter(PowerState.Small_Gen);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RecordsPage()));
               },
             ),
           ),
@@ -76,9 +81,10 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text('Big Gen'),
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) =>
-                        RecordsPage(powerSource: PowerState.Big_Gen)));
+                Provider.of<RecordsFilter>(context, listen: false)
+                    .changePowerSourceFilter(PowerState.Big_Gen);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RecordsPage()));
               },
             ),
           ),
@@ -88,10 +94,10 @@ class DrawerUtil extends StatelessWidget {
             child: ListTile(
               title: Text('Nepa'),
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => RecordsPage(
-                          powerSource: PowerState.Nepa,
-                        )));
+                Provider.of<RecordsFilter>(context, listen: false)
+                    .changePowerSourceFilter(PowerState.Nepa);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RecordsPage()));
               },
             ),
           ),
